@@ -1,0 +1,135 @@
+.audit-timeline {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.5rem;
+  margin-top: 1rem;
+}
+
+.audit-item {
+  position: relative;
+  padding-left: 2rem;
+  padding-bottom: 1.5rem;
+}
+
+.audit-item:last-child {
+  padding-bottom: 0;
+}
+
+.audit-dot {
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary);
+  z-index: 2;
+}
+
+.audit-line {
+  position: absolute;
+  left: 5px;
+  top: 0.25rem;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-color);
+  z-index: 1;
+}
+
+.audit-content {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.audit-change {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  background: var(--bg-secondary);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-color);
+}
+
+.old-value {
+  color: var(--danger);
+  text-decoration: line-through;
+}
+
+.new-value {
+  color: var(--success);
+  font-weight: 500;
+}
+
+.escalation-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-primary);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.flow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.flow-step.active {
+  color: var(--primary);
+}
+
+.flow-step.danger {
+  color: var(--danger);
+}
+
+.flow-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid currentColor;
+}
+
+.flow-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-color);
+  margin: 0 1rem;
+  position: relative;
+  top: -12px;
+}
+
+.flow-line.active {
+  background: var(--primary);
+}
+
+.export-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.export-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}

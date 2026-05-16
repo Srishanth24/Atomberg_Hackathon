@@ -1,0 +1,174 @@
+.arch-container {
+  padding: 4rem;
+  background: var(--bg-primary);
+  background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+  background-size: 20px 20px;
+  position: relative;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.arch-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  z-index: 2;
+  position: relative;
+}
+
+.arch-tier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 200px;
+}
+
+.tier-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.arch-box {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.arch-box:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.react-box {
+  border-color: #3b82f6;
+  border-bottom-width: 4px;
+}
+
+.auth-box {
+  border-color: #8b5cf6;
+  border-bottom-width: 4px;
+}
+
+.express-box {
+  border-color: #10b981;
+  border-bottom-width: 4px;
+}
+
+.mongo-box {
+  border-color: #14b8a6;
+  border-bottom-width: 4px;
+}
+
+.arch-label {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+}
+
+.arch-arrow {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  min-width: 80px;
+}
+
+.arrow-line {
+  height: 2px;
+  background: var(--border-color);
+  flex: 1;
+  position: relative;
+}
+
+.arrow-head {
+  color: var(--border-color);
+  margin-left: -5px;
+}
+
+.arrow-label {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  background: var(--bg-primary);
+  padding: 0 4px;
+}
+
+.microservices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ms-badge {
+  font-size: 0.65rem;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+}
+
+.cloud-wrapper {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-color);
+  z-index: 1;
+}
+
+@media (max-width: 1200px) {
+  .arch-canvas {
+    flex-direction: column;
+    gap: 3rem;
+  }
+  
+  .arch-arrow {
+    flex-direction: column;
+    height: 60px;
+    width: 2px;
+    min-width: auto;
+  }
+  
+  .arrow-line {
+    width: 2px;
+    height: 100%;
+  }
+  
+  .arrow-head {
+    margin-left: 0;
+    margin-top: -5px;
+    transform: rotate(90deg);
+  }
+  
+  .arrow-label {
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+  }
+}
