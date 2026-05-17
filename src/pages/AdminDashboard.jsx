@@ -47,41 +47,38 @@ const AdminDashboard = () => {
   const handleGenerateReport = (reportName, format) => {
     setReportLoading(reportName);
     
-    // Simulate network delay for report generation
-    setTimeout(() => {
+    setTimeout(async () => {
       setReportLoading(null);
       
-      // Real CSV Export Logic for Audit Report
-      if (reportName === 'Audit Report' && format === 'CSV') {
-        const headers = ['ID', 'Action', 'User', 'Role', 'Entity Type', 'Previous Value', 'Updated Value', 'Timestamp'];
-        const rows = AUDIT_LOGS.map(log => [
-          log.id,
-          `"${log.action}"`,
-          `"${log.user}"`,
-          `"${log.role}"`,
-          `"${log.entityType}"`,
-          `"${log.previousValue}"`,
-          `"${log.updatedValue}"`,
-          `"${log.timestamp}"`
-        ]);
+      try {
+        const { Parser } = await import('json2csv');
+        const XLSX = await import('xlsx');
+        const { toast } = await import('react-hot-toast');
+
+        let dataToExport = AUDIT_LOGS; // Default mock data payload for demonstration
         
-        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "audit_report_Q3_2026.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        import('react-hot-toast').then(({ toast }) => {
-           toast.success('Audit Report exported successfully');
-        });
-      } else {
-        // Generic toast for others
-        import('react-hot-toast').then(({ toast }) => {
-           toast.success(`${reportName} exported as ${format}`);
-        });
+        if (format === 'CSV') {
+          const parser = new Parser();
+          const csv = parser.parse(dataToExport);
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.setAttribute('href', url);
+          link.setAttribute('download', `${reportName.replace(/\s+/g, '_').toLowerCase()}_export.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          toast.success(`${reportName} exported successfully as CSV (via json2csv)`);
+        } else if (format === 'Excel') {
+          const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, 'Report Data');
+          XLSX.writeFile(workbook, `${reportName.replace(/\s+/g, '_').toLowerCase()}_export.xlsx`);
+          toast.success(`${reportName} exported successfully as Excel (via xlsx)`);
+        }
+      } catch (err) {
+        console.error('Export failed:', err);
+        import('react-hot-toast').then(({ toast }) => toast.error('Export failed'));
       }
     }, 1500);
   };

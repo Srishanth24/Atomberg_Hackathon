@@ -1,34 +1,59 @@
 # GoalSync AI 🎯
-> Enterprise-Grade Goal Setting & Performance Tracking Portal
+> **Enterprise-Grade Goal Setting & Performance Tracking Portal**
 
 <div align="center">
   <img src="./docs/architecture.png" alt="GoalSync AI Architecture" width="800" />
 </div>
 
-## 📖 Project Overview
-Organizations that rely on manual or fragmented goal-tracking methods often struggle with alignment, visibility, and accountability. Spreadsheets, emails, and offline review cycles create blind spots.
-
-**GoalSync AI** is a structured, digital Goal Setting & Tracking Portal designed to eliminate these pain points. The system supports the full lifecycle of employee goals — from creation and alignment to quarterly check-ins and performance visibility — while being highly intuitive, reliable, and audit-ready.
+<p align="center">
+  <em>An intelligent SaaS portal bridging the gap between strategic organizational KPIs and individual employee performance tracking.</em>
+</p>
 
 ---
 
-## 🌟 Core Features
+## 📖 Project Overview
+Organizations relying on manual goal-tracking methods (spreadsheets, emails, fragmented tools) suffer from misalignment, blind spots, and lack of accountability. 
 
-### Phase 1: Goal Creation & Approval Workflow
-- **Intelligent Goal Formulation**: Assign Unit of Measurement (Min, Max, Timeline, Zero-based) and Targets.
-- **Strict Validation Rules**: System auto-enforces a 100% total weightage rule, min 10% per goal, and max 8 goals per employee.
-- **Manager Approval Engine**: Managers can inline-edit weights and titles or push goals back to draft status. Approved goals are cryptographically **locked** from future edits.
-- **Shared KPIs (Top-Down Alignment)**: Department heads can broadcast KPIs. Employees can only adjust the weightage; the overarching target remains read-only and syncs globally.
+**GoalSync AI** eliminates these pain points by providing a structured, digitally synchronized environment. It supports the entire lifecycle of enterprise goals—from creation and managerial alignment to quarterly check-ins and live data visualization. Designed specifically for HR leaders, Managers, and Employees, the portal enforces deep organizational alignment natively.
 
-### Phase 2: Quarterly Check-ins & Analytics
-- **Dynamic Formula Tracking**: The system auto-computes progress percentages based on the specific Unit of Measurement formula logic (e.g. `(Target / Achievement) * 100` for Max/Cost goals).
-- **Enterprise Analytics Module**: Deep-dive Recharts visualizing Heatmaps, Manager Delay Analytics, Completion Trends, and Goal Distributions.
-- **Audit Logging System**: Complete, searchable paper trail for all critical actions (approvals, edits, unlocks).
+---
 
-### Good-to-Have (Bonus Features Implemented)
-- **Microsoft Entra ID Mock Integration**: Connect via Entra ID SSO layout mapping.
-- **Microsoft Teams Sync**: Header toggle to route real-time notifications to MS Teams webhooks.
-- **Escalation Rules Engine**: Rule-based notification tiering (Employee → Manager → HR) with Severity levels.
+## 📸 Platform Screenshots
+*(Replace these with live screenshots of your deployed portal)*
+
+<div style="display:flex; justify-content:space-between; gap: 10px;">
+  <img src="https://via.placeholder.com/400x250.png?text=Employee+Dashboard" alt="Employee Dashboard" width="32%"/>
+  <img src="https://via.placeholder.com/400x250.png?text=Analytics+Heatmap" alt="Analytics Heatmap" width="32%"/>
+  <img src="https://via.placeholder.com/400x250.png?text=Admin+Audit+Trail" alt="Audit Trail" width="32%"/>
+</div>
+
+---
+
+## 🌟 Core Enterprise Features
+
+### Phase 1: Robust Goal Creation & Workflow
+- **Mathematical Validation**: Strict client-and-server enforcement: goals must equal 100% total weightage, max 8 goals per cycle, minimum 10% weightage per goal.
+- **Goal Types (UoM Engine)**: Dynamically handles calculation paths for `Min (Numeric/%)`, `Max (Cost Reduction)`, `Timeline (Dates)`, and `Zero-based` targets.
+- **Manager Approval Engine**: Seamless workflow for reviewing, rejecting, or inline-editing goals. Once approved, the goal is cryptographically locked via backend state.
+- **Shared Goal Sync**: Department heads set overarching KPIs (e.g. "Increase Revenue by 10%"). Linked child goals automatically sync their progress whenever the primary KPI updates.
+
+### Phase 2: Performance Tracking & Analytics
+- **Quarterly Check-ins**: Dedicated modules where users enter raw "Actual Achievements" while the system automatically generates percentage completion scores based on UoM rules.
+- **Enterprise Analytics Layer**: Live Recharts implementations of Organizational Heatmaps, Manager Response Times, and Performance Distributions.
+- **Escalation Rules Engine**: Automated cron jobs flag overdue check-ins or pending approvals, systematically routing reminders through Level 1 (Employee), Level 2 (Manager), and Level 3 (HR).
+
+### Technical Differentiators
+- **Full Audit Trail**: Every significant action (Approval, Rejection, Edits, Escalation triggers) is immutably logged into an `AuditLog` database table tracking user, role, and old/new values.
+- **Real CSV & Excel Export**: High-fidelity reports are generated dynamically using `json2csv` and `xlsx` native libraries.
+- **SSO Ready**: Built-in visual support and database schema for Microsoft Entra ID mapping, alongside internal "MS Teams" webhook notification structures.
+
+---
+
+## 🧑‍💻 Role Explanations
+
+1. **Employee (`/employee`)**: Focuses on drafting goals, submitting them against the 100% cap, and executing quarterly check-ins. 
+2. **Manager (`/manager`)**: Focuses on the "Approvals" dashboard, utilizing inline-editing, pushing back drafts, and monitoring team compliance.
+3. **Admin / HR (`/admin`)**: Oversees the entire organization via the Audit Trail, Analytics suite, and Escalation monitors. Possesses global "unlock" powers.
 
 ---
 
@@ -36,53 +61,24 @@ Organizations that rely on manual or fragmented goal-tracking methods often stru
 
 ### Frontend (Client-Side)
 - **Framework**: React 19 + Vite
-- **Routing**: React Router 7 (Protected Routes via `src/routes/ProtectedRoute.jsx`)
-- **Styling**: TailwindCSS & Custom modular CSS files
-- **Data Visualization**: Recharts (Heatmaps, Area Charts, Pie Charts)
-- **Icons**: Lucide React
+- **Routing**: React Router 7 (Protected Routes via `ProtectedRoute.jsx`)
+- **State Management**: Context/Hooks mapped to `localStorage` simulating Zustand/Redux.
+- **Styling**: TailwindCSS + Custom modular CSS
+- **Data Visualization**: Recharts (Heatmaps, Area, Doughnut)
+- **Toast Notifications**: `react-hot-toast`
 
 ### Backend (Server-Side)
 - **Environment**: Node.js + Express.js
-- **Database Model**: MongoDB (Mongoose Schema design)
+- **Database Model**: MongoDB (Mongoose Schema Design encompassing 7 discrete entities: User, Goal, SharedGoal, AuditLog, Approval, Escalation, Checkin)
 - **Middleware Infrastructure**: 
-  - Centralized Error Handling (`errorHandler.js`)
-  - Role-Based Access Control (`role.js`)
-  - JWT Authentication (`auth.js`)
-- **Services**: Decoupled `auditService.js` and `goalService.js`
-
-### Folder Structure
-```text
-GoalSync-AI/
-├── src/
-│   ├── assets/          # Static files
-│   ├── components/      # Reusable UI (Header, Sidebar)
-│   ├── data/            # Realistic Mock Data Layer
-│   ├── layouts/         # MainLayout wrappers
-│   ├── pages/           # Route-level views (Dashboard, Login, Analytics)
-│   ├── routes/          # ProtectedRoute wrappers
-│   └── services/        # Frontend API abstraction (goalService)
-└── server/
-    ├── middleware/      # Auth, RBAC, Error Handler
-    ├── models/          # AuditLog, Goal, User schemas
-    ├── services/        # Business logic abstraction
-    ├── utils/           # asyncHandler
-    └── server.js        # Express entry point
-```
+  - `errorHandler.js` & `asyncHandler.js` (Centralized handling)
+  - `role.js` (RBAC checking `authorizeRoles("admin")`)
+  - `goalValidator.js` (Express-style array and schema validation)
+- **Services Layer**: Advanced abstractions via `escalationCron.js` and `sharedGoalService.js`.
 
 ---
 
-## 🛠️ API Layer Documentation
-The system is built on a clean RESTful architecture. (Implemented via simulated mock services in the prototype):
-
-- `POST /api/goals/create` - Creates a new employee goal draft.
-- `PUT /api/goals/approve/:id` - Locks goal and updates lifecycle status.
-- `PUT /api/goals/checkin/:id` - Triggers the progress computing formula based on UoM.
-- `GET /api/reports/completion` - Aggregates data for the Analytics Recharts layer.
-- `POST /api/audit/log` - Middlewares trace and append entries to `AuditLog`.
-
----
-
-## 🚀 Setup Instructions
+## 🚀 Setup & Installation Guide
 
 1. **Clone the repository:**
    ```bash
@@ -91,20 +87,21 @@ The system is built on a clean RESTful architecture. (Implemented via simulated 
    ```
 
 2. **Install Dependencies:**
+   Ensure you install both root (frontend) and server dependencies:
    ```bash
    npm install
    cd server && npm install
    ```
 
 3. **Environment Setup:**
-   Rename `.env.example` to `.env` and fill in your keys (Mock keys are fine for demo).
+   Rename `.env.example` to `.env` in the root and fill in your keys (Mock strings are fine for the initial prototype demo).
 
 4. **Run the Application (Concurrently):**
    ```bash
-   # Terminal 1 (Frontend)
+   # Terminal 1 (Frontend Development Server)
    npm run dev
    
-   # Terminal 2 (Backend)
+   # Terminal 2 (Backend Node Server)
    cd server
    npm run server
    ```
@@ -113,11 +110,17 @@ The system is built on a clean RESTful architecture. (Implemented via simulated 
 
 ## 🔑 Demo Credentials
 
-To experience the role-based views, you can click the quick-login demo buttons on the Login page, or route directly to:
-- **Employee**: `/employee`
-- **Manager**: `/manager`
-- **Admin**: `/admin`
+For hackathon presentation ease, the `Login.js` screen includes **Quick Switcher** buttons to instantly route between roles. You may also directly visit:
+- [localhost:5173/employee](http://localhost:5173/employee)
+- [localhost:5173/manager](http://localhost:5173/manager)
+- [localhost:5173/admin](http://localhost:5173/admin)
 
-All dashboards have dedicated access to the `/analytics` module.
+All users have access to the `/analytics` module.
 
-> Built with ❤️ for the Hackathon.
+---
+
+## 🔗 Deployment Links
+- **Live Demo**: [https://goalsync.app](https://goalsync.app) *(Update link)*
+- **Presentation Deck**: [Figma Slides](https://figma.com) *(Update link)*
+
+> Built with ❤️ for the Hackathon by the Antigravity Team.
