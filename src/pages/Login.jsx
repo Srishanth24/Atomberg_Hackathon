@@ -69,13 +69,18 @@ const Login = () => {
               <a href="#" className="forgot-password">Forgot password?</a>
             </div>
 
-            <button type="submit" className="btn btn-primary login-btn">
+            <button type="submit" className="btn btn-primary login-btn mb-4 w-full">
               Sign In
+            </button>
+
+            <button type="button" className="btn btn-outline w-full flex items-center justify-center gap-2 mb-6 border-gray-300 text-gray-700 hover:bg-gray-50" onClick={(e) => { e.preventDefault(); handleDemoLogin('employee'); }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 21 21"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
+              Sign in with Microsoft Entra ID
             </button>
           </form>
 
           <div className="divider">
-            <span>Or sign in as Demo User</span>
+            <span>Or test environments</span>
           </div>
 
           <div className="demo-login-options">

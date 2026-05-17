@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Target, TrendingUp, Clock, CheckCircle2, AlertCircle, 
-  Plus, Edit2, Lock, ChevronRight 
+  Plus, Edit2, Lock, ChevronRight, Check, X, ShieldAlert,
+  AlertTriangle, RefreshCw, Calculator
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
@@ -10,11 +11,11 @@ import {
 } from 'recharts';
 import './EmployeeDashboard.css';
 
-const MOCK_GOALS = [
-  { id: 1, title: 'Increase Q3 Sales Revenue', thrustArea: 'Revenue Growth', progress: 75, status: 'On Track', weightage: 30, isApproved: true },
-  { id: 2, title: 'Launch New Client Portal', thrustArea: 'Product', progress: 100, status: 'Completed', weightage: 40, isApproved: true },
-  { id: 3, title: 'Reduce Customer Churn by 5%', thrustArea: 'Customer Success', progress: 20, status: 'Behind', weightage: 20, isApproved: true },
-  { id: 4, title: 'Complete Leadership Training', thrustArea: 'Learning & Dev', progress: 0, status: 'Draft', weightage: 10, isApproved: false },
+const INITIAL_MOCK_GOALS = [
+  { id: 1, title: 'Increase Q3 Sales Revenue', thrustArea: 'Revenue Growth', target: 500000, actual: 375000, uom: 'Min (Numeric / %)', progress: 75, status: 'On Track', lifecycle: 'Approved', weightage: 30, isApproved: true },
+  { id: 2, title: 'Reduce Customer Churn', thrustArea: 'Customer Success', target: 5, actual: 5, uom: 'Max (Numeric / %)', progress: 100, status: 'Completed', lifecycle: 'Approved', weightage: 40, isApproved: true },
+  { id: 3, title: 'Launch New Client Portal', thrustArea: 'Product', target: '2026-10-01', actual: '2026-10-15', uom: 'Timeline', progress: 50, status: 'Behind', lifecycle: 'Under Review', weightage: 20, isApproved: false },
+  { id: 4, title: 'Zero Safety Incidents', thrustArea: 'Operational Excellence', target: 0, actual: 0, uom: 'Zero-based', progress: 0, status: 'Draft', lifecycle: 'Draft', weightage: 10, isApproved: false },
 ];
 
 const PIE_DATA = [
@@ -30,11 +31,43 @@ const BAR_DATA = [
   { name: 'Week 4', progress: 65 },
 ];
 
+const computeProgress = (uom, target, actual) => {
+  if (actual === null || actual === undefined || actual === '') return 0;
+  
+  if (uom === 'Min (Numeric / %)') {
+    const numTarget = Number(target) || 1;
+    const numActual = Number(actual) || 0;
+    return Math.min(Math.round((numActual / numTarget) * 100), 100);
+  } else if (uom === 'Max (Numeric / %)') {
+    const numTarget = Number(target) || 0;
+    const numActual = Number(actual) || 1;
+    if (numActual === 0 && numTarget === 0) return 100;
+    if (numActual === 0) return 100; // Avoiding division by zero, consider 0 actual as perfect for max goals usually
+    return Math.min(Math.round((numTarget / numActual) * 100), 100);
+  } else if (uom === 'Timeline') {
+    // Rough estimation logic for timeline: If actual <= target, 100%, else scaling down
+    const targetDate = new Date(target).getTime();
+    const actualDate = new Date(actual).getTime();
+    if (isNaN(targetDate) || isNaN(actualDate)) return 0;
+    return actualDate <= targetDate ? 100 : Math.max(100 - Math.round((actualDate - targetDate) / (1000 * 3600 * 24)), 0);
+  } else if (uom === 'Zero-based') {
+    const numActual = Number(actual) || 0;
+    return numActual === 0 ? 100 : 0;
+  }
+  return 0;
+};
+
 const EmployeeDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [goals, setGoals] = useState(INITIAL_MOCK_GOALS);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Goal Form State
+  const [newGoal, setNewGoal] = useState({
+    title: '', thrustArea: 'Revenue Growth', weightage: 10, description: '', uom: 'Min (Numeric / %)', target: ''
+  });
 
   useEffect(() => {
     const hash = location.hash.replace('#', '');
@@ -53,6 +86,60 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const totalWeightage = goals.reduce((acc, goal) => acc + (Number(goal.weightage) || 0), 0);
+  const remainingWeightage = 100 - totalWeightage;
+  const currentFormWeightage = totalWeightage + Number(newGoal.weightage || 0);
+
+  // Validation
+  const isValidWeightage = currentFormWeightage <= 100;
+  const isMinWeightage = newGoal.weightage >= 10;
+  const isMaxGoals = goals.length >= 8;
+  const canSubmitGoal = isValidWeightage && isMinWeightage && !isMaxGoals && newGoal.title && newGoal.target;
+
+  const handleSaveDraft = () => {
+    if (canSubmitGoal) {
+      setGoals([...goals, { 
+        id: Date.now(), 
+        ...newGoal, 
+        actual: '',
+        progress: 0, 
+        status: 'Draft', 
+        lifecycle: 'Draft',
+        isApproved: false 
+      }]);
+      setShowAddModal(false);
+      setNewGoal({ title: '', thrustArea: 'Revenue Growth', weightage: 10, description: '', uom: 'Min (Numeric / %)', target: '' });
+    }
+  };
+
+  const handleCheckinUpdate = (id, actualValue, status) => {
+    setGoals(goals.map(g => {
+      if (g.id === id) {
+        const progress = computeProgress(g.uom, g.target, actualValue);
+        return { ...g, actual: actualValue, progress, status };
+      }
+      return g;
+    }));
+  };
+
+  const getWeightageColor = () => {
+    if (remainingWeightage === 0) return 'text-success';
+    if (remainingWeightage < 0) return 'text-danger';
+    return 'text-warning';
+  };
+
+  const getLifecycleBadge = (lifecycle) => {
+    const colors = {
+      'Draft': 'badge-secondary',
+      'Submitted': 'badge-primary',
+      'Under Review': 'badge-warning',
+      'Approved': 'badge-success',
+      'Returned': 'badge-danger',
+      'Locked': 'badge-dark'
+    };
+    return <span className={`badge ${colors[lifecycle] || 'badge-secondary'}`}>{lifecycle}</span>;
+  };
+
   const renderDashboard = () => (
     <div className="animate-fade-in">
       <div className="dashboard-header mb-6">
@@ -60,41 +147,41 @@ const EmployeeDashboard = () => {
           <h1 className="text-2xl font-bold">Welcome back, Sarah!</h1>
           <p className="text-secondary mt-1">Here's your performance overview for Q3 2026.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => handleTabChange('goals')}>
+        <button className="btn btn-primary transition-transform hover:scale-105" onClick={() => handleTabChange('goals')}>
           <Plus size={16} />
           Add New Goal
         </button>
       </div>
 
       <div className="grid grid-cols-4 gap-6 mb-6">
-        <div className="card stat-card">
+        <div className="card stat-card interactive-card">
           <div className="stat-icon-wrapper bg-blue-100 text-blue-600">
             <Target size={24} />
           </div>
           <div className="stat-content">
             <p className="stat-label">Total Goals</p>
-            <h3 className="stat-value">4</h3>
+            <h3 className="stat-value">{goals.length} / 8</h3>
           </div>
         </div>
-        <div className="card stat-card">
+        <div className="card stat-card interactive-card">
           <div className="stat-icon-wrapper bg-green-100 text-green-600">
             <CheckCircle2 size={24} />
           </div>
           <div className="stat-content">
             <p className="stat-label">Overall Completion</p>
-            <h3 className="stat-value">62%</h3>
+            <h3 className="stat-value">{Math.round(goals.reduce((acc, g) => acc + (g.progress * (g.weightage / 100)), 0))}%</h3>
           </div>
         </div>
-        <div className="card stat-card">
+        <div className="card stat-card interactive-card">
           <div className="stat-icon-wrapper bg-yellow-100 text-yellow-600">
             <Clock size={24} />
           </div>
           <div className="stat-content">
             <p className="stat-label">Pending Approvals</p>
-            <h3 className="stat-value">1</h3>
+            <h3 className="stat-value">{goals.filter(g => g.lifecycle === 'Under Review').length}</h3>
           </div>
         </div>
-        <div className="card stat-card">
+        <div className="card stat-card interactive-card">
           <div className="stat-icon-wrapper bg-teal-100 text-teal-600">
             <TrendingUp size={24} />
           </div>
@@ -107,16 +194,16 @@ const EmployeeDashboard = () => {
 
       <div className="grid grid-cols-3 gap-6 mb-6">
         <div className="card col-span-2">
-          <div className="card-header">
+          <div className="card-header border-b border-gray-100 pb-4">
             <h2 className="card-title">Quarterly Progress</h2>
           </div>
-          <div className="chart-container" style={{ height: 300 }}>
+          <div className="chart-container pt-4" style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={BAR_DATA}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Bar dataKey="progress" fill="var(--primary)" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
@@ -124,7 +211,7 @@ const EmployeeDashboard = () => {
         </div>
 
         <div className="card">
-          <div className="card-header">
+          <div className="card-header border-b border-gray-100 pb-4">
             <h2 className="card-title">Goal Status</h2>
           </div>
           <div className="chart-container" style={{ height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -143,43 +230,16 @@ const EmployeeDashboard = () => {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pie-legend">
               {PIE_DATA.map((entry, index) => (
-                <div key={index} className="legend-item">
-                  <div className="legend-color" style={{ backgroundColor: entry.color }}></div>
-                  <span className="legend-label">{entry.name}</span>
+                <div key={index} className="legend-item flex items-center gap-2">
+                  <div className="legend-color w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                  <span className="legend-label text-sm text-gray-600">{entry.name}</span>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-6">
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Upcoming Deadlines</h2>
-            <button className="btn btn-outline btn-sm">View All</button>
-          </div>
-          <div className="list-group">
-            <div className="list-item">
-              <div className="list-icon bg-red-100 text-red-600"><AlertCircle size={18} /></div>
-              <div className="list-content">
-                <h4>Q3 Mid-quarter Check-in</h4>
-                <p>Due in 2 days</p>
-              </div>
-              <ChevronRight size={18} className="text-tertiary" />
-            </div>
-            <div className="list-item">
-              <div className="list-icon bg-blue-100 text-blue-600"><Target size={18} /></div>
-              <div className="list-content">
-                <h4>Submit Q4 Draft Goals</h4>
-                <p>Due in 15 days</p>
-              </div>
-              <ChevronRight size={18} className="text-tertiary" />
             </div>
           </div>
         </div>
@@ -194,94 +254,159 @@ const EmployeeDashboard = () => {
           <h1 className="text-2xl font-bold">My Goals</h1>
           <p className="text-secondary mt-1">Manage and track your objectives for this cycle.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        <button 
+          className="btn btn-primary shadow-md hover:shadow-lg transition-shadow" 
+          onClick={() => setShowAddModal(true)}
+          disabled={isMaxGoals}
+        >
           <Plus size={16} />
           Add Goal
         </button>
       </div>
 
+      {goals.some(g => g.isApproved) && (
+        <div className="banner bg-blue-50 text-blue-700 border border-blue-200 p-4 rounded-md mb-6 flex items-center gap-3 shadow-sm">
+          <ShieldAlert size={20} />
+          <span>Approved goals are locked. Contact Admin for modifications.</span>
+        </div>
+      )}
+
       {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <div className="modal-header">
-              <h2>Create New Goal</h2>
+        <div className="modal-overlay animate-fade-in">
+          <div className="modal-card shadow-xl max-w-2xl w-full">
+            <div className="modal-header bg-white">
+              <h2>Create New Goal <span className="text-sm font-normal text-secondary ml-2">({goals.length}/8 Goals)</span></h2>
               <button className="close-btn" onClick={() => setShowAddModal(false)}>&times;</button>
             </div>
-            <div className="modal-body">
+            
+            <div className="bg-gray-50 p-4 border-y border-gray-100 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold mb-1 text-gray-700">Weightage Distribution</p>
+                <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden flex shadow-inner">
+                   <div className="bg-blue-500 h-full transition-all" style={{width: `${totalWeightage}%`}}></div>
+                   <div className="bg-yellow-400 h-full transition-all" style={{width: `${newGoal.weightage}%`}}></div>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className={`font-bold text-lg ${getWeightageColor()}`}>{remainingWeightage}% Remaining</p>
+                <p className="text-xs text-secondary">Target: exactly 100% total</p>
+              </div>
+            </div>
+
+            <div className="modal-body p-6 bg-white">
               <form>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="form-group col-span-2">
-                    <label className="form-label">Goal Title</label>
-                    <input type="text" className="form-control" placeholder="E.g., Increase sales by 20%" />
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="form-group col-span-2 mb-0">
+                    <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Goal Title</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="E.g., Increase sales by 20%" 
+                      value={newGoal.title}
+                      onChange={e => setNewGoal({...newGoal, title: e.target.value})}
+                    />
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Thrust Area</label>
-                    <select className="form-control">
+                  <div className="form-group mb-0">
+                    <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Thrust Area</label>
+                    <select className="form-control bg-gray-50" value={newGoal.thrustArea} onChange={e => setNewGoal({...newGoal, thrustArea: e.target.value})}>
                       <option>Revenue Growth</option>
                       <option>Customer Success</option>
                       <option>Product Development</option>
                       <option>Operational Excellence</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Weightage (%)</label>
-                    <input type="number" className="form-control" min="10" max="100" placeholder="e.g. 20" />
-                    <small className="text-secondary">Minimum 10%. Total must equal 100%.</small>
+                  <div className="form-group mb-0">
+                    <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Weightage (%)</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        className={`form-control ${!isMinWeightage || !isValidWeightage ? 'border-red-500 bg-red-50' : 'border-green-500 bg-green-50'}`}
+                        min="10" 
+                        max="100" 
+                        value={newGoal.weightage}
+                        onChange={e => setNewGoal({...newGoal, weightage: Number(e.target.value)})}
+                      />
+                      {!isMinWeightage && <small className="text-red-500 mt-1 block flex items-center gap-1 absolute top-full mt-1 w-full"><AlertTriangle size={12}/> Minimum 10%</small>}
+                      {!isValidWeightage && <small className="text-red-500 mt-1 block flex items-center gap-1 absolute top-full mt-1 w-full"><AlertTriangle size={12}/> Exceeds 100%</small>}
+                    </div>
                   </div>
-                  <div className="form-group col-span-2">
-                    <label className="form-label">Description</label>
-                    <textarea className="form-control" rows="3" placeholder="Detailed description..."></textarea>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Unit of Measurement</label>
-                    <select className="form-control">
-                      <option>Percentage (%)</option>
-                      <option>Numeric Value</option>
+                  <div className="form-group mb-0">
+                    <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Unit of Measurement (UoM)</label>
+                    <select className="form-control bg-gray-50" value={newGoal.uom} onChange={e => setNewGoal({...newGoal, uom: e.target.value})}>
+                      <option>Min (Numeric / %)</option>
+                      <option>Max (Numeric / %)</option>
                       <option>Timeline</option>
-                      <option>Boolean (Done/Not Done)</option>
+                      <option>Zero-based</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Target Value</label>
-                    <input type="text" className="form-control" placeholder="100" />
+                  <div className="form-group mb-0">
+                    <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Target Value</label>
+                    <input 
+                      type={newGoal.uom === 'Timeline' ? 'date' : 'text'} 
+                      className="form-control" 
+                      placeholder={newGoal.uom === 'Min (Numeric / %)' ? 'E.g., 500000' : 'E.g., 0'} 
+                      value={newGoal.target}
+                      onChange={e => setNewGoal({...newGoal, target: e.target.value})}
+                    />
+                  </div>
+                  <div className="form-group col-span-2 mb-0">
+                    <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Description</label>
+                    <textarea 
+                      className="form-control" 
+                      rows="3" 
+                      placeholder="Detailed description..."
+                      value={newGoal.description}
+                      onChange={e => setNewGoal({...newGoal, description: e.target.value})}
+                    ></textarea>
                   </div>
                 </div>
               </form>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="btn btn-primary">Save as Draft</button>
+            <div className="modal-footer bg-gray-50 border-t border-gray-100">
+              <button className="btn btn-outline hover:bg-gray-100" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button 
+                className={`btn ${canSubmitGoal ? 'btn-primary shadow-md hover:shadow-lg' : 'btn-disabled opacity-50 cursor-not-allowed'}`} 
+                onClick={handleSaveDraft}
+                disabled={!canSubmitGoal}
+              >
+                Save as Draft
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="card">
+      <div className="card shadow-sm border border-gray-100 overflow-hidden">
         <div className="table-container">
-          <table>
-            <thead>
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th>Goal Title & Area</th>
-                <th>Weight</th>
-                <th>Progress</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Goal Title & Area</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Target & UoM</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Weight</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Progress</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Lifecycle</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {MOCK_GOALS.map(goal => (
-                <tr key={goal.id}>
-                  <td>
-                    <div className="font-bold">{goal.title}</div>
-                    <div className="text-secondary text-sm">{goal.thrustArea}</div>
+            <tbody className="divide-y divide-gray-100">
+              {goals.map(goal => (
+                <tr key={goal.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="font-bold text-gray-800">{goal.title}</div>
+                    <div className="text-secondary text-xs mt-0.5">{goal.thrustArea}</div>
                   </td>
-                  <td>{goal.weightage}%</td>
-                  <td>
-                    <div className="progress-cell">
-                      <span className="text-sm font-bold w-8">{goal.progress}%</span>
-                      <div className="progress-bar-bg">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-700">{goal.target}</div>
+                    <div className="text-xs text-gray-500 bg-gray-100 inline-block px-1.5 py-0.5 rounded mt-1">{goal.uom}</div>
+                  </td>
+                  <td className="px-4 py-3 font-medium text-blue-600">{goal.weightage}%</td>
+                  <td className="px-4 py-3 w-48">
+                    <div className="progress-cell flex items-center gap-2">
+                      <span className="text-xs font-bold w-8 text-right">{goal.progress}%</span>
+                      <div className="progress-bar-bg flex-1 h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
                         <div 
-                          className="progress-bar-fill" 
+                          className="progress-bar-fill h-full transition-all duration-500" 
                           style={{ 
                             width: `${goal.progress}%`,
                             backgroundColor: goal.progress === 100 ? 'var(--success)' : 'var(--primary)'
@@ -290,23 +415,17 @@ const EmployeeDashboard = () => {
                       </div>
                     </div>
                   </td>
-                  <td>
-                    <span className={`badge badge-${
-                      goal.status === 'Completed' ? 'success' : 
-                      goal.status === 'On Track' ? 'info' : 
-                      goal.status === 'Behind' ? 'danger' : 'warning'
-                    }`}>
-                      {goal.status}
-                    </span>
+                  <td className="px-4 py-3">
+                    {getLifecycleBadge(goal.lifecycle)}
                   </td>
-                  <td>
-                    <div className="flex gap-2">
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-2">
                       {goal.isApproved ? (
-                        <button className="icon-btn text-secondary" title="Locked (Approved)">
+                        <button className="icon-btn text-gray-400 hover:text-gray-700 transition-colors bg-gray-100 hover:bg-gray-200 rounded p-1.5" title="Locked (Approved)">
                           <Lock size={16} />
                         </button>
                       ) : (
-                        <button className="icon-btn text-primary" title="Edit Draft">
+                        <button className="icon-btn text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 rounded p-1.5" title="Edit Draft">
                           <Edit2 size={16} />
                         </button>
                       )}
@@ -322,22 +441,22 @@ const EmployeeDashboard = () => {
   );
 
   return (
-    <div>
-      <div className="tabs-nav mb-6">
+    <div className="employee-dashboard">
+      <div className="tabs-nav mb-6 border-b border-gray-200">
         <button 
-          className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+          className={`tab-btn relative px-4 py-2 font-medium transition-colors ${activeTab === 'dashboard' ? 'active text-primary border-b-2 border-primary' : 'text-gray-500 hover:text-gray-700'}`}
           onClick={() => handleTabChange('dashboard')}
         >
           Overview
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'goals' ? 'active' : ''}`}
+          className={`tab-btn relative px-4 py-2 font-medium transition-colors ${activeTab === 'goals' ? 'active text-primary border-b-2 border-primary' : 'text-gray-500 hover:text-gray-700'}`}
           onClick={() => handleTabChange('goals')}
         >
           My Goals
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'checkins' ? 'active' : ''}`}
+          className={`tab-btn relative px-4 py-2 font-medium transition-colors ${activeTab === 'checkins' ? 'active text-primary border-b-2 border-primary' : 'text-gray-500 hover:text-gray-700'}`}
           onClick={() => handleTabChange('checkins')}
         >
           Quarterly Check-ins
@@ -347,52 +466,78 @@ const EmployeeDashboard = () => {
       {activeTab === 'dashboard' && renderDashboard()}
       {activeTab === 'goals' && renderGoals()}
       {activeTab === 'checkins' && (
-        <div className="animate-fade-in card">
-          <div className="card-header">
-            <h2 className="card-title">Q3 Check-in</h2>
-            <span className="badge badge-warning">Draft</span>
+        <div className="animate-fade-in card shadow-sm border border-gray-200">
+          <div className="card-header bg-gray-50 flex justify-between items-center border-b border-gray-200 pb-4 p-6">
+            <div>
+              <h2 className="card-title text-xl font-bold flex items-center gap-2 text-gray-800"><Calculator size={24} className="text-blue-600"/> Q3 Check-in Window</h2>
+              <p className="text-secondary mt-1 text-sm">Update your achievements. Progress scores are auto-computed based on the UoM formula.</p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <span className="badge badge-warning text-sm px-3 py-1">Window Closes in 14 Days</span>
+              <span className="text-xs text-gray-500">Jul 1 - Jul 31</span>
+            </div>
           </div>
-          <p className="text-secondary mb-6">Update your achievements and progress against planned targets.</p>
           
-          <div className="checkin-list">
-            {MOCK_GOALS.filter(g => g.isApproved).map(goal => (
-              <div key={goal.id} className="checkin-item">
-                <div className="checkin-item-header">
-                  <h4>{goal.title}</h4>
-                  <span className="text-secondary">Target: 100%</span>
-                </div>
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                  <div className="form-group">
-                    <label className="form-label">Current Progress (%)</label>
-                    <input type="number" className="form-control" defaultValue={goal.progress} />
+          <div className="checkin-list p-6 space-y-6 bg-white">
+            {goals.filter(g => g.isApproved).map(goal => (
+              <div key={goal.id} className="checkin-item p-5 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all">
+                <div className="checkin-item-header flex justify-between items-start mb-6 pb-4 border-b border-gray-100">
+                  <div>
+                    <h4 className="font-bold text-lg text-gray-800">{goal.title}</h4>
+                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded mt-2 inline-block">UoM: {goal.uom}</span>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Status</label>
-                    <select className="form-control" defaultValue={goal.status}>
+                  <div className="text-right bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg">
+                    <span className="block text-xs text-blue-600 font-bold uppercase tracking-wide">Planned Target</span>
+                    <span className="text-lg font-bold text-gray-900 mt-1 block">{goal.target}</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-6">
+                  <div className="form-group col-span-1">
+                    <label className="form-label text-sm font-semibold text-gray-700">Actual Achievement</label>
+                    <input 
+                      type={goal.uom === 'Timeline' ? 'date' : 'text'} 
+                      className="form-control border-blue-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+                      value={goal.actual} 
+                      onChange={(e) => handleCheckinUpdate(goal.id, e.target.value, goal.status)}
+                    />
+                  </div>
+                  <div className="form-group col-span-1">
+                    <label className="form-label text-sm font-semibold text-gray-700">Auto-Computed Score</label>
+                    <div className="flex items-center h-[38px] px-3 bg-gray-50 border border-gray-200 rounded text-lg font-bold text-gray-700 shadow-inner">
+                      {goal.progress}%
+                    </div>
+                  </div>
+                  <div className="form-group col-span-2">
+                    <label className="form-label text-sm font-semibold text-gray-700">Status</label>
+                    <select 
+                      className="form-control" 
+                      value={goal.status}
+                      onChange={(e) => handleCheckinUpdate(goal.id, goal.actual, e.target.value)}
+                    >
+                      <option>Not Started</option>
                       <option>On Track</option>
                       <option>Behind</option>
-                      <option>At Risk</option>
                       <option>Completed</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Manager Comment</label>
-                    <div className="form-control bg-tertiary text-secondary" style={{ pointerEvents: 'none' }}>
-                      Keep up the good work.
+                  <div className="form-group col-span-4">
+                    <label className="form-label text-sm font-semibold text-gray-700">Manager Comment Log</label>
+                    <div className="form-control bg-gray-50 text-gray-600 border border-gray-200 min-h-[40px] flex items-center italic" style={{ pointerEvents: 'none' }}>
+                      "Keep up the good work on the Q3 metrics." - Alex (Manager)
                     </div>
-                  </div>
-                  <div className="form-group col-span-3">
-                    <label className="form-label">Achievement / Blockers Update</label>
-                    <textarea className="form-control" rows="2" placeholder="What went well? Any blockers?"></textarea>
                   </div>
                 </div>
               </div>
             ))}
           </div>
           
-          <div className="mt-6 flex justify-end gap-4">
-            <button className="btn btn-outline">Save Draft</button>
-            <button className="btn btn-primary">Submit Check-in</button>
+          <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center rounded-b-xl">
+            <span className="text-xs text-gray-500"><AlertTriangle size={14} className="inline mr-1 text-yellow-500"/> Progress scores are for tracking only, not final ratings.</span>
+            <div className="flex gap-4">
+              <button className="btn btn-outline px-6 py-2 bg-white hover:bg-gray-50 shadow-sm">Save Draft</button>
+              <button className="btn btn-primary px-6 py-2 flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow"><Check size={16}/> Submit Check-in</button>
+            </div>
           </div>
         </div>
       )}

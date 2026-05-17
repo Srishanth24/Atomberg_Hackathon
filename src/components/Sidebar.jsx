@@ -27,18 +27,28 @@ const Sidebar = () => {
       { name: 'Dashboard', path: '/employee', icon: LayoutDashboard },
       { name: 'My Goals', path: '/employee#goals', icon: Target },
       { name: 'Quarterly Check-ins', path: '/employee#checkins', icon: CheckSquare },
+      { name: 'Analytics', path: '/analytics', icon: BarChart2 },
     ];
   } else if (path.includes('/manager')) {
     links = [
       { name: 'Team Overview', path: '/manager', icon: Users },
       { name: 'Approvals', path: '/manager#approvals', icon: CheckCircle },
       { name: 'Shared Goals', path: '/manager#shared', icon: Target },
+      { name: 'Analytics', path: '/analytics', icon: BarChart2 },
     ];
   } else if (path.includes('/admin')) {
     links = [
       { name: 'System Overview', path: '/admin', icon: LayoutDashboard },
+      { name: 'Audit Trail', path: '/admin#audit', icon: FileText },
       { name: 'Reports Builder', path: '/admin#reports', icon: BarChart2 },
+      { name: 'Escalations', path: '/admin#escalations', icon: ShieldAlert },
+      { name: 'Analytics', path: '/analytics', icon: BarChart2 },
     ];
+  } else if (path.includes('/analytics')) {
+     links = [
+      { name: 'Back to Dashboard', path: '/employee', icon: LayoutDashboard },
+      { name: 'Analytics', path: '/analytics', icon: BarChart2 },
+     ];
   } else {
     // default
     links = [
