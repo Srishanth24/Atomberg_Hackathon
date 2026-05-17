@@ -44,11 +44,46 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleGenerateReport = (reportName) => {
+  const handleGenerateReport = (reportName, format) => {
     setReportLoading(reportName);
+    
+    // Simulate network delay for report generation
     setTimeout(() => {
       setReportLoading(null);
-    }, 2000);
+      
+      // Real CSV Export Logic for Audit Report
+      if (reportName === 'Audit Report' && format === 'CSV') {
+        const headers = ['ID', 'Action', 'User', 'Role', 'Entity Type', 'Previous Value', 'Updated Value', 'Timestamp'];
+        const rows = AUDIT_LOGS.map(log => [
+          log.id,
+          `"${log.action}"`,
+          `"${log.user}"`,
+          `"${log.role}"`,
+          `"${log.entityType}"`,
+          `"${log.previousValue}"`,
+          `"${log.updatedValue}"`,
+          `"${log.timestamp}"`
+        ]);
+        
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "audit_report_Q3_2026.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        import('react-hot-toast').then(({ toast }) => {
+           toast.success('Audit Report exported successfully');
+        });
+      } else {
+        // Generic toast for others
+        import('react-hot-toast').then(({ toast }) => {
+           toast.success(`${reportName} exported as ${format}`);
+        });
+      }
+    }, 1500);
   };
 
   const renderOverview = () => (
@@ -251,9 +286,9 @@ const AdminDashboard = () => {
                 <RefreshCw size={16} className="animate-spin" /> Generating...
               </div>
             ) : (
-              <div className="flex gap-2 w-full">
-                <button className="btn btn-outline flex-1 border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-1" onClick={() => handleGenerateReport(report)}><Download size={16} /> CSV</button>
-                <button className="btn btn-primary flex-1 flex items-center justify-center gap-1" onClick={() => handleGenerateReport(report)}><Download size={16} /> Excel</button>
+              <div className="flex gap-2 w-full mt-auto">
+                <button className="btn btn-outline flex-1 border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-1" onClick={() => handleGenerateReport(report, 'CSV')}><Download size={16} /> CSV</button>
+                <button className="btn btn-primary flex-1 flex items-center justify-center gap-1" onClick={() => handleGenerateReport(report, 'Excel')}><Download size={16} /> Excel</button>
               </div>
             )}
           </div>

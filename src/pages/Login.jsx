@@ -10,11 +10,12 @@ const Login = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Default to employee if manual login used
+    localStorage.setItem('userRole', 'employee');
     navigate('/employee');
   };
 
   const handleDemoLogin = (role) => {
+    localStorage.setItem('userRole', role);
     navigate(`/${role}`);
   };
 
