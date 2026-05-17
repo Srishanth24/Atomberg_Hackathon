@@ -10,11 +10,14 @@ const Login = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    localStorage.setItem('userRole', 'employee');
-    navigate('/employee');
-  };
-
-  const handleDemoLogin = (role) => {
+    // Simulate enterprise authentication routing based on email
+    let role = 'employee';
+    if (email.toLowerCase().includes('admin')) {
+      role = 'admin';
+    } else if (email.toLowerCase().includes('manager') || email.toLowerCase().includes('director') || email.toLowerCase().includes('tony.stark')) {
+      role = 'manager';
+    }
+    
     localStorage.setItem('userRole', role);
     navigate(`/${role}`);
   };
@@ -44,6 +47,7 @@ const Login = () => {
                   placeholder="name@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -58,6 +62,7 @@ const Login = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -74,38 +79,38 @@ const Login = () => {
               Sign In
             </button>
 
-            <button type="button" className="btn btn-outline w-full flex items-center justify-center gap-2 mb-6 border-gray-300 text-gray-700 hover:bg-gray-50" onClick={(e) => { e.preventDefault(); handleDemoLogin('employee'); }}>
+            <button type="button" className="btn btn-outline w-full flex items-center justify-center gap-2 mb-6 border-gray-300 text-gray-700 hover:bg-gray-50">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 21 21"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
               Sign in with Microsoft Entra ID
             </button>
           </form>
 
-          <div className="divider">
-            <span>Or test environments</span>
-          </div>
-
-          <div className="demo-login-options">
-            <button 
-              className="btn btn-outline demo-btn" 
-              onClick={() => handleDemoLogin('employee')}
-            >
-              Employee
-              <ArrowRight size={16} />
-            </button>
-            <button 
-              className="btn btn-outline demo-btn" 
-              onClick={() => handleDemoLogin('manager')}
-            >
-              Manager (L1)
-              <ArrowRight size={16} />
-            </button>
-            <button 
-              className="btn btn-outline demo-btn" 
-              onClick={() => handleDemoLogin('admin')}
-            >
-              Admin / HR
-              <ArrowRight size={16} />
-            </button>
+          <div className="demo-credentials mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg shadow-inner">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Hackathon Demo Credentials</h4>
+            <div className="space-y-2 text-sm text-slate-700">
+              <div 
+                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm" 
+                onClick={() => { setEmail('peter.parker@goalsync.app'); setPassword('demo123!'); }}
+              >
+                <span><span className="font-semibold text-blue-600 w-20 inline-block">Employee</span> peter.parker@goalsync.app</span>
+                <span className="font-mono text-xs text-slate-400">demo123!</span>
+              </div>
+              <div 
+                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm" 
+                onClick={() => { setEmail('tony.stark@goalsync.app'); setPassword('demo123!'); }}
+              >
+                <span><span className="font-semibold text-purple-600 w-20 inline-block">Manager</span> tony.stark@goalsync.app</span>
+                <span className="font-mono text-xs text-slate-400">demo123!</span>
+              </div>
+              <div 
+                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm" 
+                onClick={() => { setEmail('admin.hr@goalsync.app'); setPassword('demo123!'); }}
+              >
+                <span><span className="font-semibold text-teal-600 w-20 inline-block">Admin/HR</span> admin.hr@goalsync.app</span>
+                <span className="font-mono text-xs text-slate-400">demo123!</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-center text-slate-400 mt-3 italic">Click any row to auto-fill the login form.</p>
           </div>
         </div>
       </div>

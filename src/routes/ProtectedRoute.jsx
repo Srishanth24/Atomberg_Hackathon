@@ -5,8 +5,9 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
  * ProtectedRoute Wrapper
  * Ensures that users can only access routes permitted by their role.
  */
-const ProtectedRoute = ({ allowedRoles, currentRole }) => {
+const ProtectedRoute = ({ allowedRoles }) => {
   const location = useLocation();
+  const currentRole = localStorage.getItem('userRole'); // Dynamically read on every route change
 
   // If no role is set, redirect to login
   if (!currentRole) {

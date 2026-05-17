@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Target, TrendingUp, Clock, CheckCircle2, AlertCircle, 
   Plus, Edit2, Lock, ChevronRight, Check, X, ShieldAlert,
-  AlertTriangle, RefreshCw, Calculator
+  AlertTriangle, RefreshCw, Calculator, Activity
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
@@ -140,12 +140,12 @@ const EmployeeDashboard = () => {
     return <span className={`badge ${colors[lifecycle] || 'badge-secondary'}`}>{lifecycle}</span>;
   };
 
-  const renderDashboard = () => (
+  const renderOverview = () => (
     <div className="animate-fade-in">
-      <div className="dashboard-header mb-6">
+      <div className="dashboard-header mb-6 flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-bold">Welcome back, Sarah!</h1>
-          <p className="text-secondary mt-1">Here's your performance overview for Q3 2026.</p>
+          <h1 className="text-2xl font-bold">My Workspace</h1>
+          <p className="text-secondary mt-1">Track your performance, check-ins, and active goals.</p>
         </div>
         <button className="btn btn-primary transition-transform hover:scale-105" onClick={() => handleTabChange('goals')}>
           <Plus size={16} />
@@ -153,8 +153,9 @@ const EmployeeDashboard = () => {
         </button>
       </div>
 
+      {/* Row 1: KPI cards */}
       <div className="grid grid-cols-4 gap-6 mb-6">
-        <div className="card stat-card interactive-card">
+        <div className="card stat-card interactive-card border-l-4 border-blue-500">
           <div className="stat-icon-wrapper bg-blue-100 text-blue-600">
             <Target size={24} />
           </div>
@@ -163,7 +164,7 @@ const EmployeeDashboard = () => {
             <h3 className="stat-value">{goals.length} / 8</h3>
           </div>
         </div>
-        <div className="card stat-card interactive-card">
+        <div className="card stat-card interactive-card border-l-4 border-green-500">
           <div className="stat-icon-wrapper bg-green-100 text-green-600">
             <CheckCircle2 size={24} />
           </div>
@@ -172,7 +173,7 @@ const EmployeeDashboard = () => {
             <h3 className="stat-value">{Math.round(goals.reduce((acc, g) => acc + (g.progress * (g.weightage / 100)), 0))}%</h3>
           </div>
         </div>
-        <div className="card stat-card interactive-card">
+        <div className="card stat-card interactive-card border-l-4 border-yellow-500">
           <div className="stat-icon-wrapper bg-yellow-100 text-yellow-600">
             <Clock size={24} />
           </div>
@@ -181,7 +182,7 @@ const EmployeeDashboard = () => {
             <h3 className="stat-value">{goals.filter(g => g.lifecycle === 'Under Review').length}</h3>
           </div>
         </div>
-        <div className="card stat-card interactive-card">
+        <div className="card stat-card interactive-card border-l-4 border-teal-500">
           <div className="stat-icon-wrapper bg-teal-100 text-teal-600">
             <TrendingUp size={24} />
           </div>
@@ -192,27 +193,216 @@ const EmployeeDashboard = () => {
         </div>
       </div>
 
+      {/* Row 2: AI Insights + Upcoming Deadlines */}
       <div className="grid grid-cols-3 gap-6 mb-6">
-        <div className="card col-span-2">
+        <div className="card col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-lg overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 opacity-5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+          <div className="card-header border-b border-slate-700 pb-3 mb-4 relative z-10">
+            <h2 className="card-title text-white flex items-center gap-2">
+              <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(96,165,250,0.8)]"></div> 
+              AI Performance Insights
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4 relative z-10">
+            <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/50 flex items-start gap-3 hover:bg-slate-700 transition-colors">
+              <AlertTriangle size={20} className="text-yellow-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-slate-100 mb-0.5">1 goal is behind schedule</p>
+                <p className="text-xs text-slate-400 leading-tight">Client Portal Launch needs attention.</p>
+              </div>
+            </div>
+            <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/50 flex items-start gap-3 hover:bg-slate-700 transition-colors">
+              <TrendingUp size={20} className="text-green-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-slate-100 mb-0.5">Sales metrics improved 18%</p>
+                <p className="text-xs text-slate-400 leading-tight">You are tracking above department average.</p>
+              </div>
+            </div>
+            <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/50 flex items-start gap-3 hover:bg-slate-700 transition-colors">
+              <Clock size={20} className="text-blue-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-slate-100 mb-0.5">1 check-in pending approval</p>
+                <p className="text-xs text-slate-400 leading-tight">Manager review expected tomorrow.</p>
+              </div>
+            </div>
+            <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/50 flex items-start gap-3 hover:bg-slate-700 transition-colors">
+              <Target size={20} className="text-purple-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-slate-100 mb-0.5">Shared KPI Synced</p>
+                <p className="text-xs text-slate-400 leading-tight">Department ARR target was updated.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card border-l-4 border-red-500 shadow-md">
+          <div className="card-header border-b border-gray-100 pb-3 mb-3">
+            <h2 className="card-title flex items-center gap-2 text-red-700"><Clock size={18} /> Upcoming Deadlines</h2>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-2.5 bg-red-50/50 rounded-lg border border-red-100">
+              <div>
+                <p className="text-sm font-bold text-red-800">Q3 Check-in Due</p>
+                <p className="text-xs text-red-600 font-medium mt-0.5">Action Required</p>
+              </div>
+              <span className="badge bg-red-100 text-red-800 font-bold border border-red-200">2 Days</span>
+            </div>
+            <div className="flex justify-between items-center p-2.5 bg-yellow-50/50 rounded-lg border border-yellow-100">
+              <div>
+                <p className="text-sm font-bold text-yellow-800">Manager Goal Review</p>
+                <p className="text-xs text-yellow-600 font-medium mt-0.5">Pending Feedback</p>
+              </div>
+              <span className="badge bg-yellow-100 text-yellow-800 font-bold border border-yellow-200">Tomorrow</span>
+            </div>
+            <div className="flex justify-between items-center p-2.5 bg-blue-50/50 rounded-lg border border-blue-100">
+              <div>
+                <p className="text-sm font-bold text-blue-800">Submit Q4 Drafts</p>
+                <p className="text-xs text-blue-600 font-medium mt-0.5">Upcoming cycle</p>
+              </div>
+              <span className="badge bg-blue-100 text-blue-800 font-bold border border-blue-200">In 14 Days</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Weightage + Shared KPI + Activity */}
+      <div className="grid grid-cols-3 gap-6 mb-6">
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-4">
+            <h2 className="card-title flex items-center gap-2"><Calculator size={18} className="text-blue-600" /> Weightage Allocation</h2>
+          </div>
+          <div className="space-y-5">
+            <div>
+              <div className="flex justify-between text-sm mb-1.5"><span className="text-gray-700 font-medium">Completed Goals</span><span className="font-bold text-green-600">40%</span></div>
+              <div className="w-full bg-gray-100 rounded-full h-2.5"><div className="bg-green-500 h-2.5 rounded-full" style={{width: '40%'}}></div></div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1.5"><span className="text-gray-700 font-medium">In Progress</span><span className="font-bold text-blue-600">50%</span></div>
+              <div className="w-full bg-gray-100 rounded-full h-2.5"><div className="bg-blue-500 h-2.5 rounded-full" style={{width: '50%'}}></div></div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1.5"><span className="text-gray-700 font-medium">Draft / Remaining</span><span className="font-bold text-gray-500">10%</span></div>
+              <div className="w-full bg-gray-100 rounded-full h-2.5"><div className="bg-gray-400 h-2.5 rounded-full" style={{width: '10%'}}></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-3">
+            <h2 className="card-title flex items-center gap-2"><RefreshCw size={18} className="text-indigo-600" /> Shared KPI Sync</h2>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-2.5 hover:bg-gray-50 rounded-lg border border-gray-100 transition-colors">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Sales Growth KPI</p>
+                <p className="text-xs text-gray-500 mt-0.5">Dept. Goal</p>
+              </div>
+              <span className="badge bg-green-50 text-green-700 border border-green-200">Synced</span>
+            </div>
+            <div className="flex justify-between items-center p-2.5 hover:bg-gray-50 rounded-lg border border-gray-100 transition-colors">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Product Launch KPI</p>
+                <p className="text-xs text-gray-500 mt-0.5">Org. Goal</p>
+              </div>
+              <span className="badge bg-yellow-50 text-yellow-700 border border-yellow-200">Pending</span>
+            </div>
+            <div className="flex justify-between items-center p-2.5 hover:bg-gray-50 rounded-lg border border-gray-100 transition-colors">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Customer Retention</p>
+                <p className="text-xs text-gray-500 mt-0.5">Updated 5 mins ago</p>
+              </div>
+              <span className="badge bg-blue-50 text-blue-700 border border-blue-200">Synced</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-4">
+            <h2 className="card-title flex items-center gap-2"><Activity size={18} className="text-purple-600" /> Recent Activity</h2>
+          </div>
+          <div className="relative pl-5 border-l-2 border-gray-100 space-y-5 ml-2">
+            <div className="relative">
+              <div className="absolute w-3.5 h-3.5 bg-white border-2 border-green-500 rounded-full -left-[27px] top-0.5"></div>
+              <p className="text-sm text-gray-800">Manager approved <span className="font-bold">Sales KPI</span></p>
+              <p className="text-xs text-gray-400 mt-0.5 font-medium">2 hours ago</p>
+            </div>
+            <div className="relative">
+              <div className="absolute w-3.5 h-3.5 bg-white border-2 border-blue-500 rounded-full -left-[27px] top-0.5"></div>
+              <p className="text-sm text-gray-800">Quarterly update submitted</p>
+              <p className="text-xs text-gray-400 mt-0.5 font-medium">Yesterday</p>
+            </div>
+            <div className="relative">
+              <div className="absolute w-3.5 h-3.5 bg-white border-2 border-yellow-500 rounded-full -left-[27px] top-0.5"></div>
+              <p className="text-sm text-gray-800">Goal returned for revision</p>
+              <p className="text-xs text-gray-400 mt-0.5 font-medium">Oct 12</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 4: Top Active Goals */}
+      <div className="card mb-6 shadow-sm">
+        <div className="card-header border-b border-gray-100 pb-4 mb-2 flex justify-between items-center">
+          <h2 className="card-title">Top Active Goals</h2>
+          <button className="text-sm text-blue-600 font-medium hover:text-blue-800 flex items-center">View All <ChevronRight size={16} /></button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/80 text-gray-500 text-xs uppercase tracking-wider border-y border-gray-100">
+                <th className="p-3 pl-4 font-semibold">Goal Title</th>
+                <th className="p-3 font-semibold">Progress</th>
+                <th className="p-3 font-semibold">Weightage</th>
+                <th className="p-3 pr-4 font-semibold text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm divide-y divide-gray-100">
+              {goals.filter(g => g.lifecycle === 'Approved' || g.lifecycle === 'Locked').slice(0,3).map(goal => (
+                <tr key={goal.id} className="hover:bg-blue-50/30 transition-colors">
+                  <td className="p-3 pl-4 font-semibold text-gray-800">{goal.title}</td>
+                  <td className="p-3 w-1/3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-full max-w-[150px] bg-gray-200 rounded-full h-2">
+                        <div className={`h-2 rounded-full ${goal.progress >= 75 ? 'bg-green-500' : goal.progress >= 40 ? 'bg-blue-500' : 'bg-red-500'}`} style={{ width: `${goal.progress}%` }}></div>
+                      </div>
+                      <span className="text-xs font-bold text-gray-600">{goal.progress}%</span>
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600 font-medium">{goal.weightage}%</td>
+                  <td className="p-3 pr-4 text-right">
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold ${goal.progress >= 75 ? 'bg-green-100 text-green-700' : goal.progress >= 40 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                      {goal.progress >= 75 ? 'On Track' : goal.progress >= 40 ? 'In Progress' : 'Delayed'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Row 5: Charts */}
+      <div className="grid grid-cols-3 gap-6 mb-6">
+        <div className="card col-span-2 shadow-sm">
           <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title">Quarterly Progress</h2>
+            <h2 className="card-title">Weekly Productivity Heatmap</h2>
           </div>
           <div className="chart-container pt-4" style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={BAR_DATA}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="progress" fill="var(--primary)" radius={[4, 4, 0, 0]} barSize={40} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6b7280'}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#6b7280'}} />
+                <Tooltip cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                <Bar dataKey="progress" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={48} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card shadow-sm">
           <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title">Goal Status</h2>
+            <h2 className="card-title">Goal Distribution</h2>
           </div>
           <div className="chart-container" style={{ height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <ResponsiveContainer width="100%" height="80%">
@@ -221,29 +411,31 @@ const EmployeeDashboard = () => {
                   data={PIE_DATA}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={65}
+                  outerRadius={85}
                   paddingAngle={5}
                   dataKey="value"
+                  stroke="none"
                 >
                   {PIE_DATA.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="pie-legend">
+            <div className="pie-legend flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
               {PIE_DATA.map((entry, index) => (
-                <div key={index} className="legend-item flex items-center gap-2">
-                  <div className="legend-color w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                  <span className="legend-label text-sm text-gray-600">{entry.name}</span>
+                <div key={index} className="legend-item flex items-center gap-1.5">
+                  <div className="legend-color w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                  <span className="legend-label text-xs font-medium text-gray-600">{entry.name}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 
@@ -463,7 +655,7 @@ const EmployeeDashboard = () => {
         </button>
       </div>
 
-      {activeTab === 'dashboard' && renderDashboard()}
+      {activeTab === 'dashboard' && renderOverview()}
       {activeTab === 'goals' && renderGoals()}
       {activeTab === 'checkins' && (
         <div className="animate-fade-in card shadow-sm border border-gray-200">

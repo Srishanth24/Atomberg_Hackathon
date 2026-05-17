@@ -8,7 +8,7 @@ import approvalRoutes from './routes/approvalRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import escalationRoutes from './routes/escalationRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
-import { errorHandler } from '../../middleware/errorHandler.js';
+import { errorHandler } from './middleware/errorHandler.js';
 import { auditLog } from './middleware/audit.js';
 
 dotenv.config();
