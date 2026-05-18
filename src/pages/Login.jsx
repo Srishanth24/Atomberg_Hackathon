@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Lock, Mail, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Target, Lock, Mail, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { apiClient } from '../services/apiClient';
 import './Login.css';
 
 const Login = () => {
@@ -8,18 +10,23 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Simulate enterprise authentication routing based on email
-    let role = 'employee';
-    if (email.toLowerCase().includes('admin')) {
-      role = 'admin';
-    } else if (email.toLowerCase().includes('manager') || email.toLowerCase().includes('director') || email.toLowerCase().includes('tony.stark')) {
-      role = 'manager';
+    try {
+      const { token, user } = await apiClient.login({ email, password });
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      localStorage.setItem('userRole', user.role);
+      toast.success(`Signed in as ${user.name}`);
+      navigate(`/${user.role}`);
+    } catch (error) {
+      toast.error(error.message);
     }
-    
-    localStorage.setItem('userRole', role);
-    navigate(`/${role}`);
+  };
+
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    toast('Use the demo password: demo123!');
   };
 
   return (
@@ -72,14 +79,18 @@ const Login = () => {
                 <input type="checkbox" />
                 <span>Remember me</span>
               </label>
-              <a href="#" className="forgot-password">Forgot password?</a>
+              <a href="#forgot-password" className="forgot-password" onClick={handleForgotPassword}>Forgot password?</a>
             </div>
 
             <button type="submit" className="btn btn-primary login-btn mb-4 w-full">
               Sign In
             </button>
 
-            <button type="button" className="btn btn-outline w-full flex items-center justify-center gap-2 mb-6 border-gray-300 text-gray-700 hover:bg-gray-50">
+            <button
+              type="button"
+              className="btn btn-outline w-full flex items-center justify-center gap-2 mb-6 border-gray-300 text-gray-700 hover:bg-gray-50"
+              onClick={() => toast('Microsoft Entra ID is presentation-ready; use demo credentials for this build.')}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 21 21"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
               Sign in with Microsoft Entra ID
             </button>

@@ -3,11 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Users, CheckCircle, AlertCircle, BarChart2, 
   MessageSquare, UserPlus, FileText, Check, X,
-  RefreshCw, History, Clock, Lock, Target, Share2, CornerDownRight
+  RefreshCw, History, Clock, Lock, Target, Share2, CornerDownRight, Plus
 } from 'lucide-react';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
-} from 'recharts';
+import toast from 'react-hot-toast';
+import { apiClient } from '../services/apiClient';
 import './ManagerDashboard.css';
 
 const TEAM_MEMBERS = [
@@ -15,17 +14,6 @@ const TEAM_MEMBERS = [
   { id: 2, name: 'Mike Chen', role: 'Account Executive', goals: 3, progress: 85, status: 'Completed' },
   { id: 3, name: 'Jessica Alba', role: 'Sales Engineer', goals: 5, progress: 30, status: 'Behind' },
   { id: 4, name: 'Tom Hardy', role: 'SDR', goals: 2, progress: 50, status: 'On Track' },
-];
-
-const INITIAL_APPROVALS = [
-  { 
-    id: 101, user: 'Sarah Jenkins', type: 'New Goal', title: 'Complete Leadership Training', submittedAt: '2 days ago',
-    status: 'Pending', history: [{action: 'Submitted', date: '2 days ago'}], comment: '', weightage: 20
-  },
-  { 
-    id: 102, user: 'Jessica Alba', type: 'Check-in', title: 'Q3 Product Demo Target', submittedAt: '1 day ago',
-    status: 'Under Review', history: [{action: 'Submitted', date: '1 day ago'}, {action: 'Reviewed', date: '12 hours ago'}], comment: '', weightage: 30
-  },
 ];
 
 const SHARED_KPIS = [
@@ -48,28 +36,27 @@ const SHARED_KPIS = [
   }
 ];
 
-const TREND_DATA = [
-  { name: 'Month 1', teamAvg: 20 },
-  { name: 'Month 2', teamAvg: 45 },
-  { name: 'Month 3', teamAvg: 70 },
-];
-
 const ManagerDashboard = () => {
-  const [activeTab, setActiveTab] = useState('team');
-  const [approvals, setApprovals] = useState(INITIAL_APPROVALS);
+  const [approvals, setApprovals] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [sharedKpis, setSharedKpis] = useState(SHARED_KPIS);
   const [syncingKpi, setSyncingKpi] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const hash = location.hash.replace('#', '');
+  const activeTab = hash === 'approvals' || hash === 'shared' ? hash : 'team';
 
   useEffect(() => {
-    const hash = location.hash.replace('#', '');
-    if (hash === 'approvals' || hash === 'shared') {
-      setActiveTab(hash);
-    } else {
-      setActiveTab('team');
-    }
-  }, [location.hash]);
+    Promise.all([apiClient.getGoals(), apiClient.getApprovals(), apiClient.getSharedGoals()])
+      .then(([goalsData, approvalsData, sharedGoalsData]) => {
+        setGoals(goalsData);
+        setApprovals(approvalsData);
+        setSharedKpis(sharedGoalsData.length ? sharedGoalsData : SHARED_KPIS);
+      })
+      .catch(error => toast.error(error.message));
+  }, []);
+
+  const approvalItems = approvals;
 
   const handleTabChange = (tab) => {
     if (tab === 'team') {
@@ -79,25 +66,71 @@ const ManagerDashboard = () => {
     }
   };
 
-  const handleAction = (id, actionType) => {
-    setApprovals(approvals.map(app => {
-      if (app.id === id) {
-        return { 
-          ...app, 
-          status: actionType, 
-          history: [...app.history, {action: actionType, date: 'Just now'}] 
-        };
+  const handleAction = async (id, actionType) => {
+    if (!String(id).startsWith('goal-')) {
+      try {
+        const updatedApproval = await apiClient.updateApproval(id, {
+          action: actionType === 'Approved' ? 'approve' : actionType === 'Returned' ? 'return' : 'reject',
+          managerComment: approvals.find(approval => approval.id === id)?.comment || '',
+        });
+        setApprovals(approvals.map(approval => approval.id === id ? updatedApproval : approval));
+        setGoals(await apiClient.getGoals());
+        toast.success(actionType === 'Approved' ? 'Goal sheet approved and locked' : 'Goal sheet returned');
+      } catch (error) {
+        toast.error(error.message);
       }
-      return app;
-    }));
+      return;
+    }
+
   };
 
   const handleSync = (id) => {
     setSyncingKpi(id);
-    setTimeout(() => {
-      setSharedKpis(sharedKpis.map(kpi => kpi.id === id ? {...kpi, syncStatus: 'Synced', lastSync: 'Just now'} : kpi));
-      setSyncingKpi(null);
-    }, 1500);
+    apiClient.syncSharedGoal(id, 100)
+      .then(() => apiClient.getSharedGoals())
+      .then(setSharedKpis)
+      .catch(error => toast.error(error.message))
+      .finally(() => setSyncingKpi(null));
+  };
+
+  const handleExportReport = async () => {
+    try {
+      const rows = await apiClient.getAchievementReport();
+      const headers = Object.keys(rows[0] || { message: 'No report rows available' });
+      const csv = [
+        headers.join(','),
+        ...rows.map(row => headers.map(header => `"${String(row[header] ?? '').replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'team_achievement_report.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Team report exported');
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleCreateSharedGoal = async () => {
+    try {
+      await apiClient.createSharedGoal({
+        title: 'Improve Department Goal Completion to 95%',
+        description: 'Shared KPI assigned to reporting employees for the current cycle.',
+        thrustArea: 'Operational Excellence',
+        uom: 'Min (Numeric / %)',
+        target: 95,
+        defaultWeightage: 10,
+      });
+      setSharedKpis(await apiClient.getSharedGoals());
+      toast.success('Shared goal created for your team');
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const renderTeam = () => (
@@ -108,7 +141,7 @@ const ManagerDashboard = () => {
           <p className="text-secondary mt-1">Overview of your team's performance and pending items.</p>
         </div>
         <div className="flex gap-4">
-          <button className="btn btn-outline">
+          <button className="btn btn-outline" onClick={handleExportReport}>
             <FileText size={16} />
             Export Report
           </button>
@@ -135,7 +168,7 @@ const ManagerDashboard = () => {
           </div>
           <div className="stat-content">
             <p className="stat-label">Pending Approvals</p>
-            <h3 className="stat-value">{approvals.filter(a => a.status === 'Pending' || a.status === 'Under Review').length}</h3>
+            <h3 className="stat-value">{approvalItems.filter(a => a.status === 'Pending' || a.status === 'Under Review').length}</h3>
           </div>
         </div>
         <div className="card stat-card hover:shadow-md transition-shadow cursor-pointer">
@@ -197,7 +230,7 @@ const ManagerDashboard = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <button className="btn btn-outline btn-sm hover:bg-gray-100">View Profile</button>
+                      <button className="btn btn-outline btn-sm hover:bg-gray-100" onClick={() => toast(`${member.name}: ${member.progress}% progress across ${member.goals} goals`)}>View Profile</button>
                     </td>
                   </tr>
                 ))}
@@ -211,7 +244,7 @@ const ManagerDashboard = () => {
             <h2 className="card-title flex items-center gap-2"><AlertCircle size={18} className="text-red-500"/> Needs Attention</h2>
           </div>
           <div className="list-group p-4 space-y-4">
-            {approvals.filter(a => a.status === 'Pending').map(approval => (
+            {approvalItems.filter(a => a.status === 'Pending').map(approval => (
               <div key={approval.id} className="list-item flex items-start gap-3 p-3 bg-yellow-50 rounded border border-yellow-100">
                 <div className="list-icon text-yellow-600 mt-1"><Clock size={16} /></div>
                 <div className="list-content">
@@ -243,7 +276,7 @@ const ManagerDashboard = () => {
       </div>
 
       <div className="approval-list space-y-6">
-        {approvals.map(approval => (
+            {approvalItems.map(approval => (
           <div key={approval.id} className="card approval-card border border-gray-200 shadow-sm overflow-hidden">
             <div className="approval-header bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
               <div className="flex items-center gap-4">
@@ -282,6 +315,10 @@ const ManagerDashboard = () => {
                     placeholder="Add feedback before approving/rejecting..."
                     value={approval.comment}
                     onChange={(e) => {
+                      if (String(approval.id).startsWith('goal-')) {
+                        setGoals(goals.map(goal => goal.id === approval.goalId ? { ...goal, managerComment: e.target.value } : goal));
+                        return;
+                      }
                       const newApprovals = [...approvals];
                       const idx = newApprovals.findIndex(a => a.id === approval.id);
                       newApprovals[idx].comment = e.target.value;
@@ -340,7 +377,7 @@ const ManagerDashboard = () => {
           <h1 className="text-2xl font-bold flex items-center gap-2"><Share2 size={24}/> Shared KPIs</h1>
           <p className="text-secondary mt-1">Create, assign, and sync departmental KPIs to your team.</p>
         </div>
-        <button className="btn btn-primary shadow-lg hover:shadow-xl transition-shadow">
+        <button className="btn btn-primary shadow-lg hover:shadow-xl transition-shadow" onClick={handleCreateSharedGoal}>
           <Plus size={16} /> Create Shared Goal
         </button>
       </div>
@@ -430,9 +467,9 @@ const ManagerDashboard = () => {
           onClick={() => handleTabChange('approvals')}
         >
           Approvals
-          {approvals.filter(a => a.status === 'Pending' || a.status === 'Under Review').length > 0 && (
+          {approvalItems.filter(a => a.status === 'Pending' || a.status === 'Under Review').length > 0 && (
             <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">
-              {approvals.filter(a => a.status === 'Pending' || a.status === 'Under Review').length}
+              {approvalItems.filter(a => a.status === 'Pending' || a.status === 'Under Review').length}
             </span>
           )}
         </button>

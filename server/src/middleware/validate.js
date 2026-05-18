@@ -1,11 +1,15 @@
 export const validate = (schema) => {
   return (req, res, next) => {
-    // Basic validation stub
-    const isValid = true; 
-    if (!isValid) {
+    if (!schema) {
+      return next();
+    }
+
+    const result = schema.safeParse ? schema.safeParse(req.body) : { success: true };
+    if (!result.success) {
       return res.status(400).json({
         success: false,
-        error: 'Validation failed'
+        error: 'Validation failed',
+        details: result.error?.issues || []
       });
     }
     next();

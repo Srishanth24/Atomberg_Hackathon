@@ -3,15 +3,12 @@ import {
   LayoutDashboard, 
   Target, 
   CheckSquare, 
-  Bell, 
   User, 
   Users, 
   CheckCircle, 
   BarChart2, 
-  Settings, 
   ShieldAlert, 
-  FileText,
-  Network
+  FileText
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -20,7 +17,7 @@ const Sidebar = () => {
   const path = location.pathname;
   const fullPath = location.pathname + location.hash;
 
-  let links = [];
+  let links;
 
   if (path.includes('/employee')) {
     links = [

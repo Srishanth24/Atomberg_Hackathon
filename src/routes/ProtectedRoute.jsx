@@ -1,4 +1,3 @@
-import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 /**
@@ -7,10 +6,11 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
  */
 const ProtectedRoute = ({ allowedRoles }) => {
   const location = useLocation();
-  const currentRole = localStorage.getItem('userRole'); // Dynamically read on every route change
+  const token = localStorage.getItem('authToken');
+  const currentRole = localStorage.getItem('userRole');
 
   // If no role is set, redirect to login
-  if (!currentRole) {
+  if (!token || !currentRole) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

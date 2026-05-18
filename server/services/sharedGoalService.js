@@ -23,7 +23,7 @@ export const syncSharedGoalProgress = async (sharedGoalId, newProgress, triggere
     ];
 
     // 3. Update progress for all linked goals
-    for (const goal of linkedGoals) {
+    for (let index = 0; index < linkedGoals.length; index++) {
       // await Goal.findByIdAndUpdate(goal.id, { progress: newProgress });
       updatedCount++;
     }

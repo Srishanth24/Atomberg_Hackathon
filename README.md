@@ -44,7 +44,7 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
 
 ### Technical Differentiators
 - **Full Audit Trail**: Every significant action (Approval, Rejection, Edits, Escalation triggers) is immutably logged into an `AuditLog` database table tracking user, role, and old/new values.
-- **Real CSV & Excel Export**: High-fidelity reports are generated dynamically using `json2csv` and `xlsx` native libraries.
+- **Real CSV & Excel Export**: Reports export as CSV and Excel-compatible `.xls` files without vulnerable spreadsheet dependencies.
 - **SSO Ready**: Built-in visual support and database schema for Microsoft Entra ID mapping, alongside internal "MS Teams" webhook notification structures.
 
 ---
@@ -62,7 +62,7 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
 ### Frontend (Client-Side)
 - **Framework**: React 19 + Vite
 - **Routing**: React Router 7 (Protected Routes via `ProtectedRoute.jsx`)
-- **State Management**: Context/Hooks mapped to `localStorage` simulating Zustand/Redux.
+- **State Management**: API-driven React state backed by the Express/MongoDB service.
 - **Styling**: TailwindCSS + Custom modular CSS
 - **Data Visualization**: Recharts (Heatmaps, Area, Doughnut)
 - **Toast Notifications**: `react-hot-toast`
@@ -94,7 +94,7 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
    ```
 
 3. **Environment Setup:**
-   Rename `.env.example` to `.env` in the root and fill in your keys (Mock strings are fine for the initial prototype demo).
+   Rename `.env.example` to `.env` in the root and fill in your keys. For deployment, set `VITE_API_URL` to the public backend URL and set `MONGO_URI`/`JWT_SECRET` on the backend host.
 
 4. **Run the Application (Concurrently):**
    ```bash
@@ -104,6 +104,15 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
    # Terminal 2 (Backend Node Server)
    cd server
    npm run server
+   ```
+
+5. **Verify before submission:**
+   ```bash
+   npm run lint
+   npm run build
+   cd server
+   npm test
+   npm audit
    ```
 
 ---
@@ -120,7 +129,8 @@ All users have access to the `/analytics` module.
 ---
 
 ## 🔗 Deployment Links
-- **Live Demo**: [https://goalsync.app](https://goalsync.app) *(Update link)*
+- **Live Demo**: *(Update with your deployed frontend URL)*
+- **API Base URL**: *(Update with your deployed backend URL, e.g. Render/Railway/Fly.io)*
 - **Presentation Deck**: [Figma Slides](https://figma.com) *(Update link)*
 
 > Built with ❤️ for the Hackathon by the Antigravity Team.

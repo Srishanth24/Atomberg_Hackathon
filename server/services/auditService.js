@@ -15,8 +15,7 @@ export const logAuditEvent = async ({ action, user, role, entityType, entityId, 
       newValue
     });
 
-    // In a real database, this would save to MongoDB
-    // await logEntry.save();
+    await logEntry.save();
     
     console.log(`[AUDIT] ${action} on ${entityType} by ${user} (${role})`);
     return logEntry;

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, Menu, UserCircle, CheckCircle, X, AlertTriangle, ShieldAlert, Target, Clock, FileText, Settings, LogOut, MessageSquare } from 'lucide-react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Bell, Search, Menu, UserCircle, CheckCircle, ShieldAlert, Target, Clock, Settings, LogOut, MessageSquare } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import './Header.css';
 
 const NOTIFICATIONS = [
@@ -60,10 +61,20 @@ const Header = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
 
+  const handleSignOut = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userRole');
+    navigate('/login');
+  };
+
   return (
     <header className="header relative z-40 bg-white border-b border-gray-200">
       <div className="header-left">
-        <button className="icon-btn mobile-menu hover:bg-gray-100 rounded-full p-2 transition-colors">
+        <button
+          className="icon-btn mobile-menu hover:bg-gray-100 rounded-full p-2 transition-colors"
+          onClick={() => toast('Sidebar is already visible on this screen')}
+        >
           <Menu size={20} className="text-gray-600" />
         </button>
         <div className="search-bar relative" ref={searchRef}>
@@ -168,7 +179,14 @@ const Header = () => {
               
               {notifications.length > 0 && (
                 <div className="p-3 border-t border-gray-100 text-center bg-gray-50">
-                  <button className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                  <button
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                    onClick={() => {
+                      setShowNotifications(false);
+                      const role = localStorage.getItem('userRole');
+                      navigate(role === 'admin' ? '/admin#audit' : role === 'manager' ? '/manager#approvals' : '/employee#goals');
+                    }}
+                  >
                     View All Activity
                   </button>
                 </div>
@@ -219,10 +237,10 @@ const Header = () => {
               </div>
               
               <div className="p-2">
-                <Link to="/login" className="p-2 flex items-center gap-2 text-sm text-red-600 hover:bg-red-50 rounded cursor-pointer transition-colors">
+                <button onClick={handleSignOut} className="w-full p-2 flex items-center gap-2 text-sm text-red-600 hover:bg-red-50 rounded cursor-pointer transition-colors">
                    <LogOut size={16} />
                    Sign Out
-                </Link>
+                </button>
               </div>
             </div>
           )}

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import User from '../models/User.js';
 
 // Protect routes - verifies JWT
 export const protect = asyncHandler(async (req, res, next) => {
@@ -10,12 +11,14 @@ export const protect = asyncHandler(async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
       
-      // In a real app, you'd look up the user in DB:
-      // req.user = await User.findById(decoded.id).select('-password');
-      req.user = decoded; // Mocking decoded user
+      req.user = await User.findById(decoded.id).select('-password');
+      if (!req.user) {
+        res.status(401);
+        throw new Error('Not authorized, user no longer exists');
+      }
       
       next();
-    } catch (error) {
+    } catch {
       res.status(401);
       throw new Error('Not authorized, token failed');
     }

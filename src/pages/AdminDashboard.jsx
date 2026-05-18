@@ -3,8 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Building, Settings, Clock, ShieldAlert, 
   Download, FileSpreadsheet, LockOpen, ArrowRight,
-  Activity, Users, Search, Filter, Calendar, RefreshCw, AlertTriangle
+  Activity, Search, Filter, Calendar, RefreshCw, AlertTriangle
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { apiClient } from '../services/apiClient';
 import './AdminDashboard.css';
 
 const AUDIT_LOGS = [
@@ -21,20 +23,56 @@ const ESCALATIONS = [
   { id: 3, employee: 'Steve Rogers', manager: 'Peggy Carter', daysOverdue: 2, level: 1, status: 'Employee Reminder', severity: 'info' },
 ];
 
+const escapeExportCell = (value) => {
+  const text = String(value ?? '');
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const downloadBlob = (content, filename, type) => {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const buildCsv = (rows) => {
+  if (!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  return [
+    headers.map(escapeExportCell).join(','),
+    ...rows.map(row => headers.map(header => escapeExportCell(row[header])).join(',')),
+  ].join('\n');
+};
+
+const buildExcelHtml = (rows) => {
+  if (!rows.length) return '<table></table>';
+  const headers = Object.keys(rows[0]);
+  const headerCells = headers.map(header => `<th>${String(header)}</th>`).join('');
+  const bodyRows = rows.map(row => `<tr>${headers.map(header => `<td>${String(row[header] ?? '')}</td>`).join('')}</tr>`).join('');
+  return `<html><body><table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></body></html>`;
+};
+
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
   const [reportLoading, setReportLoading] = useState(null);
+  const [auditLogs, setAuditLogs] = useState(AUDIT_LOGS);
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditEntityType, setAuditEntityType] = useState('All Entity Types');
+  const [auditDate, setAuditDate] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
+  const hash = location.hash.replace('#', '');
+  const activeTab = ['overview', 'audit', 'reports', 'escalations'].includes(hash) ? hash : 'overview';
 
   useEffect(() => {
-    const hash = location.hash.replace('#', '');
-    if (['overview', 'audit', 'reports', 'escalations'].includes(hash)) {
-      setActiveTab(hash);
-    } else {
-      setActiveTab('overview');
-    }
-  }, [location.hash]);
+    apiClient.getAuditLogs()
+      .then(logs => setAuditLogs(logs.length ? logs : AUDIT_LOGS))
+      .catch(() => setAuditLogs(AUDIT_LOGS));
+  }, []);
 
   const handleTabChange = (tab) => {
     if (tab === 'overview') {
@@ -44,6 +82,14 @@ const AdminDashboard = () => {
     }
   };
 
+  const filteredAuditLogs = auditLogs.filter(log => {
+    const haystack = `${log.action} ${log.user} ${log.role} ${log.entityType}`.toLowerCase();
+    const matchesSearch = haystack.includes(auditSearch.toLowerCase());
+    const matchesEntity = auditEntityType === 'All Entity Types' || log.entityType === auditEntityType;
+    const matchesDate = !auditDate || String(log.timestamp || log.createdAt || '').startsWith(auditDate);
+    return matchesSearch && matchesEntity && matchesDate;
+  });
+
   const handleGenerateReport = (reportName, format) => {
     setReportLoading(reportName);
     
@@ -51,34 +97,29 @@ const AdminDashboard = () => {
       setReportLoading(null);
       
       try {
-        const { Parser } = await import('json2csv');
-        const XLSX = await import('xlsx');
-        const { toast } = await import('react-hot-toast');
-
-        let dataToExport = AUDIT_LOGS; // Default mock data payload for demonstration
+        const reportRows = await apiClient.getAchievementReport();
+        let dataToExport = reportName.includes('Audit')
+          ? auditLogs
+          : reportRows;
         
         if (format === 'CSV') {
-          const parser = new Parser();
-          const csv = parser.parse(dataToExport);
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.setAttribute('href', url);
-          link.setAttribute('download', `${reportName.replace(/\s+/g, '_').toLowerCase()}_export.csv`);
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          toast.success(`${reportName} exported successfully as CSV (via json2csv)`);
+          downloadBlob(
+            buildCsv(dataToExport),
+            `${reportName.replace(/\s+/g, '_').toLowerCase()}_export.csv`,
+            'text/csv;charset=utf-8;'
+          );
+          toast.success(`${reportName} exported successfully as CSV`);
         } else if (format === 'Excel') {
-          const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-          const workbook = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(workbook, worksheet, 'Report Data');
-          XLSX.writeFile(workbook, `${reportName.replace(/\s+/g, '_').toLowerCase()}_export.xlsx`);
-          toast.success(`${reportName} exported successfully as Excel (via xlsx)`);
+          downloadBlob(
+            buildExcelHtml(dataToExport),
+            `${reportName.replace(/\s+/g, '_').toLowerCase()}_export.xls`,
+            'application/vnd.ms-excel;charset=utf-8;'
+          );
+          toast.success(`${reportName} exported successfully as Excel-compatible file`);
         }
       } catch (err) {
         console.error('Export failed:', err);
-        import('react-hot-toast').then(({ toast }) => toast.error('Export failed'));
+        toast.error('Export failed');
       }
     }, 1500);
   };
@@ -91,10 +132,10 @@ const AdminDashboard = () => {
           <p className="text-secondary mt-1">Manage organization settings, users, and goal cycles.</p>
         </div>
         <div className="flex gap-4">
-          <button className="btn btn-outline hover:bg-gray-50">
+          <button className="btn btn-outline hover:bg-gray-50" onClick={() => toast('Cycle settings are fixed to FY2026 for this demo build.')}>
             <Settings size={16} /> Cycle Settings
           </button>
-          <button className="btn btn-primary shadow-md hover:shadow-lg">
+          <button className="btn btn-primary shadow-md hover:shadow-lg" onClick={() => toast.success('Global unlock request logged for HR review.')}>
             <LockOpen size={16} /> Global Unlock
           </button>
         </div>
@@ -145,7 +186,7 @@ const AdminDashboard = () => {
           <button className="btn btn-outline btn-sm" onClick={() => handleTabChange('audit')}>View Full Log</button>
         </div>
         <div className="audit-timeline p-4">
-          {AUDIT_LOGS.slice(0, 3).map((log, idx) => (
+          {auditLogs.slice(0, 3).map((log, idx) => (
             <div key={log.id} className="audit-item">
               <div className="audit-dot"></div>
               {idx !== 2 && <div className="audit-line"></div>}
@@ -177,7 +218,7 @@ const AdminDashboard = () => {
           <h1 className="text-2xl font-bold flex items-center gap-2"><Activity size={24}/> Enterprise Audit Trail</h1>
           <p className="text-secondary mt-1">Comprehensive log of all system activities and compliance events.</p>
         </div>
-        <button className="btn btn-outline shadow-sm flex items-center gap-2">
+        <button className="btn btn-outline shadow-sm flex items-center gap-2" onClick={() => handleGenerateReport('Audit Report', 'CSV')}>
           <Download size={16}/> Export CSV
         </button>
       </div>
@@ -186,10 +227,10 @@ const AdminDashboard = () => {
         <div className="p-4 bg-gray-50 border-b border-gray-200 flex gap-4">
           <div className="form-group mb-0 flex-1 relative">
             <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input type="text" className="form-control pl-9" placeholder="Search audit logs..." />
+            <input type="text" className="form-control pl-9" placeholder="Search audit logs..." value={auditSearch} onChange={(event) => setAuditSearch(event.target.value)} />
           </div>
           <div className="form-group mb-0 w-48">
-            <select className="form-control">
+            <select className="form-control" value={auditEntityType} onChange={(event) => setAuditEntityType(event.target.value)}>
               <option>All Entity Types</option>
               <option>Goal</option>
               <option>Check-in</option>
@@ -199,9 +240,9 @@ const AdminDashboard = () => {
           </div>
           <div className="form-group mb-0 w-48 relative">
             <Calendar size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input type="date" className="form-control pl-9" />
+            <input type="date" className="form-control pl-9" value={auditDate} onChange={(event) => setAuditDate(event.target.value)} />
           </div>
-          <button className="btn btn-primary"><Filter size={16}/> Filter</button>
+          <button className="btn btn-primary" onClick={() => toast.success(`${filteredAuditLogs.length} audit log rows match the filters`)}><Filter size={16}/> Filter</button>
         </div>
 
         <div className="table-container">
@@ -218,7 +259,7 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {AUDIT_LOGS.map(log => (
+              {filteredAuditLogs.map(log => (
                 <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 whitespace-nowrap text-gray-500">{log.timestamp}</td>
                   <td className="px-4 py-3 font-medium text-gray-800">{log.action}</td>

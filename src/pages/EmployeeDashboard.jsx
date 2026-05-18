@@ -1,27 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Target, TrendingUp, Clock, CheckCircle2, AlertCircle, 
-  Plus, Edit2, Lock, ChevronRight, Check, X, ShieldAlert,
+  Target, TrendingUp, Clock, CheckCircle2, 
+  Plus, Edit2, Lock, ChevronRight, Check, ShieldAlert,
   AlertTriangle, RefreshCw, Calculator, Activity
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid 
 } from 'recharts';
+import toast from 'react-hot-toast';
+import { apiClient } from '../services/apiClient';
 import './EmployeeDashboard.css';
-
-const INITIAL_MOCK_GOALS = [
-  { id: 1, title: 'Increase Q3 Sales Revenue', thrustArea: 'Revenue Growth', target: 500000, actual: 375000, uom: 'Min (Numeric / %)', progress: 75, status: 'On Track', lifecycle: 'Approved', weightage: 30, isApproved: true },
-  { id: 2, title: 'Reduce Customer Churn', thrustArea: 'Customer Success', target: 5, actual: 5, uom: 'Max (Numeric / %)', progress: 100, status: 'Completed', lifecycle: 'Approved', weightage: 40, isApproved: true },
-  { id: 3, title: 'Launch New Client Portal', thrustArea: 'Product', target: '2026-10-01', actual: '2026-10-15', uom: 'Timeline', progress: 50, status: 'Behind', lifecycle: 'Under Review', weightage: 20, isApproved: false },
-  { id: 4, title: 'Zero Safety Incidents', thrustArea: 'Operational Excellence', target: 0, actual: 0, uom: 'Zero-based', progress: 0, status: 'Draft', lifecycle: 'Draft', weightage: 10, isApproved: false },
-];
 
 const PIE_DATA = [
   { name: 'Completed', value: 1, color: '#10b981' },
   { name: 'On Track', value: 2, color: '#3b82f6' },
-  { name: 'Behind', value: 1, color: '#ef4444' }
+  { name: 'Not Started', value: 1, color: '#ef4444' }
 ];
 
 const BAR_DATA = [
@@ -58,11 +53,13 @@ const computeProgress = (uom, target, actual) => {
 };
 
 const EmployeeDashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [goals, setGoals] = useState(INITIAL_MOCK_GOALS);
+  const [goals, setGoals] = useState([]);
+  const [loadingGoals, setLoadingGoals] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const hash = location.hash.replace('#', '');
+  const activeTab = hash === 'goals' || hash === 'checkins' ? hash : 'dashboard';
 
   // Goal Form State
   const [newGoal, setNewGoal] = useState({
@@ -70,13 +67,11 @@ const EmployeeDashboard = () => {
   });
 
   useEffect(() => {
-    const hash = location.hash.replace('#', '');
-    if (hash === 'goals' || hash === 'checkins') {
-      setActiveTab(hash);
-    } else {
-      setActiveTab('dashboard');
-    }
-  }, [location.hash]);
+    apiClient.getGoals()
+      .then(setGoals)
+      .catch(error => toast.error(error.message))
+      .finally(() => setLoadingGoals(false));
+  }, []);
 
   const handleTabChange = (tab) => {
     if (tab === 'dashboard') {
@@ -89,6 +84,7 @@ const EmployeeDashboard = () => {
   const totalWeightage = goals.reduce((acc, goal) => acc + (Number(goal.weightage) || 0), 0);
   const remainingWeightage = 100 - totalWeightage;
   const currentFormWeightage = totalWeightage + Number(newGoal.weightage || 0);
+  const canSubmitSheet = totalWeightage === 100 && goals.length > 0 && goals.length <= 8 && goals.every(goal => Number(goal.weightage) >= 10);
 
   // Validation
   const isValidWeightage = currentFormWeightage <= 100;
@@ -96,19 +92,34 @@ const EmployeeDashboard = () => {
   const isMaxGoals = goals.length >= 8;
   const canSubmitGoal = isValidWeightage && isMinWeightage && !isMaxGoals && newGoal.title && newGoal.target;
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (canSubmitGoal) {
-      setGoals([...goals, { 
-        id: Date.now(), 
-        ...newGoal, 
-        actual: '',
-        progress: 0, 
-        status: 'Draft', 
-        lifecycle: 'Draft',
-        isApproved: false 
-      }]);
-      setShowAddModal(false);
-      setNewGoal({ title: '', thrustArea: 'Revenue Growth', weightage: 10, description: '', uom: 'Min (Numeric / %)', target: '' });
+      try {
+        const createdGoal = await apiClient.createGoalDraft(newGoal);
+        setGoals([createdGoal, ...goals]);
+        toast.success('Goal draft saved');
+        setShowAddModal(false);
+        setNewGoal({ title: '', thrustArea: 'Revenue Growth', weightage: 10, description: '', uom: 'Min (Numeric / %)', target: '' });
+      } catch (error) {
+        toast.error(error.message);
+      }
+    } else {
+      toast.error('Fix validation errors before saving the goal');
+    }
+  };
+
+  const handleSubmitGoalSheet = async () => {
+    if (!canSubmitSheet) {
+      toast.error('Goal sheet must have 1-8 goals, each at least 10%, with total weightage exactly 100%');
+      return;
+    }
+
+    try {
+      const updatedGoals = await apiClient.submitGoalSheet();
+      setGoals(updatedGoals);
+      toast.success('Goal sheet submitted to L1 manager');
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 
@@ -120,6 +131,33 @@ const EmployeeDashboard = () => {
       }
       return g;
     }));
+  };
+
+  const handleSubmitCheckins = async () => {
+    try {
+      const approvedGoals = goals.filter(goal => goal.isApproved);
+      const updatedGoals = await Promise.all(approvedGoals.map(goal => (
+        apiClient.submitCheckin(goal.id, {
+          quarter: 'Q1',
+          year: 2026,
+          actualAchievement: goal.actual,
+          status: goal.status,
+        })
+      )));
+
+      setGoals(goals.map(goal => updatedGoals.find(updated => updated.id === goal.id) || goal));
+      toast.success('Quarterly check-in submitted');
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleSaveCheckinDraft = () => {
+    toast.success('Check-in draft saved locally on this page. Submit to persist it.');
+  };
+
+  const handleEditDraft = (goal) => {
+    toast(`Editing existing goal "${goal.title}" is available before submission in the API backlog.`);
   };
 
   const getWeightageColor = () => {
@@ -344,7 +382,7 @@ const EmployeeDashboard = () => {
       <div className="card mb-6 shadow-sm">
         <div className="card-header border-b border-gray-100 pb-4 mb-2 flex justify-between items-center">
           <h2 className="card-title">Top Active Goals</h2>
-          <button className="text-sm text-blue-600 font-medium hover:text-blue-800 flex items-center">View All <ChevronRight size={16} /></button>
+          <button className="text-sm text-blue-600 font-medium hover:text-blue-800 flex items-center" onClick={() => handleTabChange('goals')}>View All <ChevronRight size={16} /></button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -453,6 +491,15 @@ const EmployeeDashboard = () => {
         >
           <Plus size={16} />
           Add Goal
+        </button>
+        <button
+          className="btn btn-outline shadow-sm"
+          onClick={handleSubmitGoalSheet}
+          disabled={!canSubmitSheet}
+          title="Submit only when total weightage equals 100%"
+        >
+          <Check size={16} />
+          Submit Goal Sheet
         </button>
       </div>
 
@@ -568,6 +615,9 @@ const EmployeeDashboard = () => {
         </div>
       )}
 
+      {loadingGoals ? (
+        <div className="card p-6 text-secondary">Loading goals from API...</div>
+      ) : (
       <div className="card shadow-sm border border-gray-100 overflow-hidden">
         <div className="table-container">
           <table className="w-full text-left">
@@ -613,11 +663,11 @@ const EmployeeDashboard = () => {
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       {goal.isApproved ? (
-                        <button className="icon-btn text-gray-400 hover:text-gray-700 transition-colors bg-gray-100 hover:bg-gray-200 rounded p-1.5" title="Locked (Approved)">
+                        <button className="icon-btn text-gray-400 hover:text-gray-700 transition-colors bg-gray-100 hover:bg-gray-200 rounded p-1.5" title="Locked (Approved)" onClick={() => toast('Approved goals are locked. Admin unlock is required for edits.')}>
                           <Lock size={16} />
                         </button>
                       ) : (
-                        <button className="icon-btn text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 rounded p-1.5" title="Edit Draft">
+                        <button className="icon-btn text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 rounded p-1.5" title="Edit Draft" onClick={() => handleEditDraft(goal)}>
                           <Edit2 size={16} />
                         </button>
                       )}
@@ -629,6 +679,7 @@ const EmployeeDashboard = () => {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 
@@ -709,7 +760,6 @@ const EmployeeDashboard = () => {
                     >
                       <option>Not Started</option>
                       <option>On Track</option>
-                      <option>Behind</option>
                       <option>Completed</option>
                     </select>
                   </div>
@@ -727,8 +777,15 @@ const EmployeeDashboard = () => {
           <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center rounded-b-xl">
             <span className="text-xs text-gray-500"><AlertTriangle size={14} className="inline mr-1 text-yellow-500"/> Progress scores are for tracking only, not final ratings.</span>
             <div className="flex gap-4">
-              <button className="btn btn-outline px-6 py-2 bg-white hover:bg-gray-50 shadow-sm">Save Draft</button>
-              <button className="btn btn-primary px-6 py-2 flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow"><Check size={16}/> Submit Check-in</button>
+              <button className="btn btn-outline px-6 py-2 bg-white hover:bg-gray-50 shadow-sm" onClick={handleSaveCheckinDraft}>Save Draft</button>
+              <button
+                className="btn btn-primary px-6 py-2 flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow"
+                onClick={() => {
+                  handleSubmitCheckins();
+                }}
+              >
+                <Check size={16}/> Submit Check-in
+              </button>
             </div>
           </div>
         </div>

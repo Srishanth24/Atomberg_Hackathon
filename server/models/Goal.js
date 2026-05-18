@@ -22,6 +22,10 @@ const goalSchema = new mongoose.Schema({
     index: true
   },
   progress: { type: Number, default: 0, min: 0, max: 100 },
+  actual: { type: mongoose.Schema.Types.Mixed },
+  managerComment: { type: String },
+  locked: { type: Boolean, default: false, index: true },
+  primaryOwnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   linkedSharedGoalId: { type: mongoose.Schema.Types.ObjectId, ref: 'SharedGoal', index: true },
 }, { timestamps: true });
 
