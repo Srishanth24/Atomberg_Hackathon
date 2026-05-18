@@ -1,255 +1,246 @@
+import { useEffect, useState } from 'react';
 import { Sparkles, TrendingUp, AlertTriangle, Trophy, Clock, ShieldAlert } from 'lucide-react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Legend, PieChart, Pie, Cell, ScatterChart, Scatter, ZAxis, LineChart, Line
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    BarChart, Bar, Legend, PieChart, Pie, Cell, ScatterChart, Scatter, ZAxis, LineChart, Line
 } from 'recharts';
+import toast from 'react-hot-toast';
+import { apiClient } from '../services/apiClient';
 import './Analytics.css';
 
-const TREND_DATA = [
-  { name: 'Jan', sales: 40, engineering: 24, marketing: 24 },
-  { name: 'Feb', sales: 30, engineering: 13, marketing: 22 },
-  { name: 'Mar', sales: 20, engineering: 58, marketing: 22 },
-  { name: 'Apr', sales: 27, engineering: 39, marketing: 20 },
-  { name: 'May', sales: 18, engineering: 48, marketing: 21 },
-  { name: 'Jun', sales: 23, engineering: 38, marketing: 25 },
-  { name: 'Jul', sales: 34, engineering: 43, marketing: 21 },
-];
-
-const DISTRIBUTION_DATA = [
-  { name: 'Revenue', value: 400, color: '#3b82f6' },
-  { name: 'Product', value: 300, color: '#8b5cf6' },
-  { name: 'Customer', value: 300, color: '#10b981' },
-  { name: 'Ops', value: 200, color: '#f59e0b' },
-];
-
-const LEADERBOARD = [
-  { rank: 1, dept: 'Engineering', score: 92, trend: '+5%' },
-  { rank: 2, dept: 'Customer Success', score: 88, trend: '+2%' },
-  { rank: 3, dept: 'Sales', score: 85, trend: '+8%' },
-  { rank: 4, dept: 'Marketing', score: 78, trend: '-3%' },
-];
-
-const HEATMAP_DATA = [
-  { x: 10, y: 30, z: 200 },
-  { x: 30, y: 200, z: 260 },
-  { x: 45, y: 100, z: 400 },
-  { x: 50, y: 400, z: 280 },
-  { x: 70, y: 150, z: 500 },
-  { x: 100, y: 250, z: 200 },
-];
-
-const DELAY_DATA = [
-  { name: 'Manager A', delay: 4.2 },
-  { name: 'Manager B', delay: 2.1 },
-  { name: 'Manager C', delay: 1.5 },
-  { name: 'Manager D', delay: 0.8 },
-];
-
-const ESCALATION_DATA = [
-  { month: 'Jan', lvl1: 10, lvl2: 4, lvl3: 1 },
-  { month: 'Feb', lvl1: 15, lvl2: 6, lvl3: 2 },
-  { month: 'Mar', lvl1: 8, lvl2: 2, lvl3: 0 },
-  { month: 'Apr', lvl1: 12, lvl2: 5, lvl3: 1 },
-];
+const FALLBACK_DATA = {
+    summary: {
+        totalGoals: 0,
+        lockedGoals: 0,
+        pendingApprovals: 0,
+        completedGoals: 0,
+        averageProgress: 0,
+    },
+    monthlyProgress: [
+        { name: 'Jan', completed: 1, progress: 42 },
+        { name: 'Feb', completed: 2, progress: 55 },
+        { name: 'Mar', completed: 2, progress: 61 },
+    ],
+    statusBreakdown: [
+        { name: 'Draft', value: 1, color: '#94a3b8' },
+        { name: 'Submitted', value: 2, color: '#3b82f6' },
+        { name: 'Approved', value: 3, color: '#10b981' },
+    ],
+    thrustBreakdown: [
+        { name: 'Revenue', value: 4, color: '#3b82f6' },
+        { name: 'Product', value: 3, color: '#8b5cf6' },
+        { name: 'Customer', value: 3, color: '#10b981' },
+        { name: 'Ops', value: 2, color: '#f59e0b' },
+    ],
+    managerEffectiveness: [
+        { name: 'Manager A', teamSize: 4, avgDecisionDays: 2.4, approvalRate: 88, effectiveness: 76 },
+        { name: 'Manager B', teamSize: 5, avgDecisionDays: 4.2, approvalRate: 82, effectiveness: 61 },
+        { name: 'Manager C', teamSize: 3, avgDecisionDays: 1.5, approvalRate: 91, effectiveness: 84 },
+    ],
+};
 
 const Analytics = () => {
-  return (
-    <div className="animate-fade-in">
-      <div className="dashboard-header mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Enterprise Analytics Module</h1>
-          <p className="text-secondary mt-1">Deep dive into organizational performance metrics and manager effectiveness.</p>
-        </div>
-      </div>
+    const [dashboard, setDashboard] = useState(null);
 
-      <div className="ai-insights-panel mb-8 bg-purple-50/50 border border-purple-100 rounded-xl p-6 shadow-sm">
-        <div className="ai-header flex items-center gap-2 mb-4">
-          <Sparkles className="text-purple-500" size={24} />
-          <h2 className="font-bold text-xl text-purple-900">AI Performance Insights</h2>
-        </div>
-        <div className="grid grid-cols-4 gap-6">
-          <div className="insight-card bg-white p-4 rounded-lg border border-purple-50 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
-            <div className="insight-icon bg-green-100 text-green-600 p-2 rounded-full shrink-0"><TrendingUp size={20}/></div>
-            <p className="text-sm text-gray-700"><strong>Sales goals</strong> improved by 18% QoQ, driven by the new product launch.</p>
-          </div>
-          <div className="insight-card bg-white p-4 rounded-lg border border-purple-50 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
-            <div className="insight-icon bg-red-100 text-red-600 p-2 rounded-full shrink-0"><AlertTriangle size={20}/></div>
-            <p className="text-sm text-gray-700"><strong>3 employees</strong> in Marketing are currently behind schedule on Q3 OKRs.</p>
-          </div>
-          <div className="insight-card bg-white p-4 rounded-lg border border-purple-50 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
-            <div className="insight-icon bg-yellow-100 text-yellow-600 p-2 rounded-full shrink-0"><Clock size={20}/></div>
-            <p className="text-sm text-gray-700"><strong>Manager A</strong> has the highest approval delays (avg 4.2 days).</p>
-          </div>
-          <div className="insight-card bg-white p-4 rounded-lg border border-purple-50 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
-            <div className="insight-icon bg-purple-100 text-purple-600 p-2 rounded-full shrink-0"><Trophy size={20}/></div>
-            <p className="text-sm text-gray-700"><strong>Engineering</strong> is the top-performing department this quarter at 92% completion.</p>
-          </div>
-        </div>
-      </div>
+    useEffect(() => {
+        apiClient.getAnalyticsDashboard()
+            .then(setDashboard)
+            .catch((error) => {
+                console.error('Failed to load analytics dashboard:', error);
+                toast.error('Analytics data is currently unavailable; showing fallback visuals.');
+                setDashboard(null);
+            });
+    }, []);
 
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="card shadow-sm border border-gray-200">
-          <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title">Quarterly Completion Trends</h2>
-          </div>
-          <div style={{ height: 300 }} className="p-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={TREND_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorEng" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend />
-                <Area type="monotone" dataKey="sales" name="Sales Dept" stroke="#3b82f6" fillOpacity={1} fill="url(#colorSales)" />
-                <Area type="monotone" dataKey="engineering" name="Engineering Dept" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorEng)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+    const data = dashboard || FALLBACK_DATA;
+    const summary = data.summary || FALLBACK_DATA.summary;
+    const monthlyProgress = data.monthlyProgress?.length ? data.monthlyProgress : FALLBACK_DATA.monthlyProgress;
+    const statusBreakdown = data.statusBreakdown?.length ? data.statusBreakdown : FALLBACK_DATA.statusBreakdown;
+    const thrustBreakdown = data.thrustBreakdown?.length ? data.thrustBreakdown : FALLBACK_DATA.thrustBreakdown;
+    const managerEffectiveness = data.managerEffectiveness?.length ? data.managerEffectiveness : FALLBACK_DATA.managerEffectiveness;
 
-        <div className="card shadow-sm border border-gray-200">
-          <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title">Team Performance Comparison</h2>
-          </div>
-          <div style={{ height: 300 }} className="p-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={TREND_DATA} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend />
-                <Bar dataKey="sales" name="Sales" stackId="a" fill="#3b82f6" />
-                <Bar dataKey="engineering" name="Engineering" stackId="a" fill="#8b5cf6" />
-                <Bar dataKey="marketing" name="Marketing" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+    const managerScatterData = managerEffectiveness.map((item) => ({
+        x: item.teamSize,
+        y: item.approvalRate,
+        z: item.effectiveness,
+        name: item.name,
+    }));
 
-      <div className="grid grid-cols-3 gap-6 mb-6">
-        <div className="card shadow-sm border border-gray-200">
-          <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title">Approval Delay Analytics</h2>
-          </div>
-          <div style={{ height: 250 }} className="p-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart layout="vertical" data={DELAY_DATA} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                <XAxis type="number" name="Days" />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={80} />
-                <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
-                <Bar dataKey="delay" name="Avg Delay (Days)" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="card shadow-sm border border-gray-200">
-          <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title flex items-center gap-2"><ShieldAlert size={18} className="text-red-500"/> Escalation Analytics</h2>
-          </div>
-          <div style={{ height: 250 }} className="p-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={ESCALATION_DATA} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend />
-                <Line type="monotone" dataKey="lvl1" name="Level 1" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="lvl2" name="Level 2" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="lvl3" name="Level 3" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        
-        <div className="card shadow-sm border border-gray-200">
-          <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title">Manager Effectiveness (Heatmap)</h2>
-          </div>
-          <div style={{ height: 250 }} className="p-4 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid stroke="#f0f0f0" />
-                <XAxis type="number" dataKey="x" name="Team Size" tickLine={false} axisLine={false} />
-                <YAxis type="number" dataKey="y" name="Goals Comp." tickLine={false} axisLine={false} />
-                <ZAxis type="number" dataKey="z" range={[100, 500]} name="Effectiveness" />
-                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name="Managers" data={HEATMAP_DATA} fill="#8b5cf6" fillOpacity={0.7} />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-6">
-        <div className="card shadow-sm border border-gray-200">
-          <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title">Goal Distribution</h2>
-          </div>
-          <div style={{ height: 300 }} className="p-4 flex items-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={DISTRIBUTION_DATA}
-                  innerRadius={80}
-                  outerRadius={110}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {DISTRIBUTION_DATA.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="card shadow-sm border border-gray-200">
-          <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title">Dept Leaderboard</h2>
-          </div>
-          <div className="leaderboard p-4 space-y-4">
-            {LEADERBOARD.map(item => (
-              <div key={item.rank} className="leaderboard-item flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100 hover:shadow-sm transition-shadow">
-                <div className={`rank-badge w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${item.rank === 1 ? 'bg-yellow-100 text-yellow-700' : item.rank === 2 ? 'bg-gray-200 text-gray-700' : item.rank === 3 ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'}`}>
-                  #{item.rank}
+    return (
+        <div className="animate-fade-in">
+            <div className="dashboard-header mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold">Enterprise Analytics Module</h1>
+                    <p className="text-secondary mt-1">Live performance visibility across goals, approvals, and manager effectiveness.</p>
                 </div>
-                <div className="flex-1">
-                  <div className="font-bold text-gray-800">{item.dept}</div>
-                  <div className="score-bar-bg mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="score-bar-fill h-full bg-blue-500" style={{ width: `${item.score}%` }}></div>
-                  </div>
+            </div>
+
+            <div className="ai-insights-panel mb-8 bg-purple-50/50 border border-purple-100 rounded-xl p-6 shadow-sm">
+                <div className="ai-header flex items-center gap-2 mb-4">
+                    <Sparkles className="text-purple-500" size={24} />
+                    <h2 className="font-bold text-xl text-purple-900">Live Performance Snapshot</h2>
                 </div>
-                <div className="text-right">
-                  <div className="font-bold text-lg text-gray-800">{item.score}%</div>
-                  <div className={`text-xs font-medium flex items-center justify-end gap-1 ${item.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                    <TrendingUp size={12} className={item.trend.startsWith('-') ? 'rotate-180 transform' : ''}/> {item.trend}
-                  </div>
+                <div className="grid grid-cols-4 gap-6">
+                    <div className="insight-card bg-white p-4 rounded-lg border border-purple-50 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
+                        <div className="insight-icon bg-blue-100 text-blue-600 p-2 rounded-full shrink-0"><Trophy size={20} /></div>
+                        <p className="text-sm text-gray-700"><strong>{summary.totalGoals}</strong> total goals are registered in the active portal.</p>
+                    </div>
+                    <div className="insight-card bg-white p-4 rounded-lg border border-purple-50 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
+                        <div className="insight-icon bg-green-100 text-green-600 p-2 rounded-full shrink-0"><TrendingUp size={20} /></div>
+                        <p className="text-sm text-gray-700"><strong>{summary.completedGoals}</strong> goals are complete and tracking cleanly.</p>
+                    </div>
+                    <div className="insight-card bg-white p-4 rounded-lg border border-purple-50 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
+                        <div className="insight-icon bg-yellow-100 text-yellow-600 p-2 rounded-full shrink-0"><Clock size={20} /></div>
+                        <p className="text-sm text-gray-700"><strong>{summary.pendingApprovals}</strong> approvals are still pending manager action.</p>
+                    </div>
+                    <div className="insight-card bg-white p-4 rounded-lg border border-purple-50 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
+                        <div className="insight-icon bg-purple-100 text-purple-600 p-2 rounded-full shrink-0"><ShieldAlert size={20} /></div>
+                        <p className="text-sm text-gray-700"><strong>{summary.averageProgress}%</strong> is the average goal progress across the org.</p>
+                    </div>
                 </div>
-              </div>
-            ))}
-          </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-6 mb-6">
+                <div className="card stat-card interactive-card border-l-4 border-blue-500">
+                    <div className="stat-icon-wrapper bg-blue-100 text-blue-600">
+                        <Trophy size={24} />
+                    </div>
+                    <div className="stat-content">
+                        <p className="stat-label">Total Goals</p>
+                        <h3 className="stat-value">{summary.totalGoals}</h3>
+                    </div>
+                </div>
+                <div className="card stat-card interactive-card border-l-4 border-green-500">
+                    <div className="stat-icon-wrapper bg-green-100 text-green-600">
+                        <TrendingUp size={24} />
+                    </div>
+                    <div className="stat-content">
+                        <p className="stat-label">Locked / Approved</p>
+                        <h3 className="stat-value">{summary.lockedGoals}</h3>
+                    </div>
+                </div>
+                <div className="card stat-card interactive-card border-l-4 border-yellow-500">
+                    <div className="stat-icon-wrapper bg-yellow-100 text-yellow-600">
+                        <Clock size={24} />
+                    </div>
+                    <div className="stat-content">
+                        <p className="stat-label">Pending Approvals</p>
+                        <h3 className="stat-value">{summary.pendingApprovals}</h3>
+                    </div>
+                </div>
+                <div className="card stat-card interactive-card border-l-4 border-red-500">
+                    <div className="stat-icon-wrapper bg-red-100 text-red-600">
+                        <AlertTriangle size={24} />
+                    </div>
+                    <div className="stat-content">
+                        <p className="stat-label">Completed Goals</p>
+                        <h3 className="stat-value">{summary.completedGoals}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="card shadow-sm border border-gray-200">
+                    <div className="card-header border-b border-gray-100 pb-4">
+                        <h2 className="card-title">Monthly Progress</h2>
+                    </div>
+                    <div style={{ height: 300 }} className="p-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={monthlyProgress} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorProgress" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                <YAxis axisLine={false} tickLine={false} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Legend />
+                                <Area type="monotone" dataKey="progress" name="Avg Progress %" stroke="#3b82f6" fillOpacity={1} fill="url(#colorProgress)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="card shadow-sm border border-gray-200">
+                    <div className="card-header border-b border-gray-100 pb-4">
+                        <h2 className="card-title">Goal Status Breakdown</h2>
+                    </div>
+                    <div style={{ height: 300 }} className="p-4 flex items-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={statusBreakdown} innerRadius={70} outerRadius={100} paddingAngle={4} dataKey="value">
+                                    {statusBreakdown.map((entry, index) => (
+                                        <Cell key={`status-${index}`} fill={entry.color || ['#94a3b8', '#3b82f6', '#10b981', '#f59e0b'][index % 4]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-6 mb-6">
+                <div className="card shadow-sm border border-gray-200">
+                    <div className="card-header border-b border-gray-100 pb-4">
+                        <h2 className="card-title">Goal Distribution by Thrust Area</h2>
+                    </div>
+                    <div style={{ height: 250 }} className="p-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={thrustBreakdown} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                <YAxis axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Bar dataKey="value" name="Goals" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="card shadow-sm border border-gray-200">
+                    <div className="card-header border-b border-gray-100 pb-4">
+                        <h2 className="card-title flex items-center gap-2"><ShieldAlert size={18} className="text-red-500" /> Manager Effectiveness</h2>
+                    </div>
+                    <div style={{ height: 250 }} className="p-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <CartesianGrid stroke="#f0f0f0" />
+                                <XAxis type="number" dataKey="x" name="Team Size" tickLine={false} axisLine={false} />
+                                <YAxis type="number" dataKey="y" name="Approval Rate" tickLine={false} axisLine={false} />
+                                <ZAxis type="number" dataKey="z" range={[80, 500]} name="Effectiveness" />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                                <Scatter name="Managers" data={managerScatterData} fill="#8b5cf6" fillOpacity={0.7} />
+                            </ScatterChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="card shadow-sm border border-gray-200">
+                    <div className="card-header border-b border-gray-100 pb-4">
+                        <h2 className="card-title">Progress by Manager</h2>
+                    </div>
+                    <div style={{ height: 250 }} className="p-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={managerEffectiveness} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                <YAxis axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Legend />
+                                <Line type="monotone" dataKey="approvalRate" name="Approval Rate" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+                                <Line type="monotone" dataKey="avgDecisionDays" name="Avg Decision Days" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default Analytics;

@@ -10,6 +10,9 @@ import reportRoutes from './routes/reportRoutes.js';
 import escalationRoutes from './routes/escalationRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import sharedGoalRoutes from './routes/sharedGoalRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import cycleRoutes from './routes/cycleRoutes.js';
+import hierarchyRoutes from './routes/hierarchyRoutes.js';
 import { connectDB } from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { auditLog } from './middleware/audit.js';
@@ -31,6 +34,9 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/escalations', escalationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/shared-goals', sharedGoalRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/cycle-settings', cycleRoutes);
+app.use('/api/org-hierarchy', hierarchyRoutes);
 
 // Centralized error handling
 app.use(errorHandler);

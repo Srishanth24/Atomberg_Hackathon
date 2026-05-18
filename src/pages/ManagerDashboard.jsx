@@ -41,6 +41,7 @@ const ManagerDashboard = () => {
   const [goals, setGoals] = useState([]);
   const [sharedKpis, setSharedKpis] = useState(SHARED_KPIS);
   const [syncingKpi, setSyncingKpi] = useState(null);
+  const [approvalEdits, setApprovalEdits] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
   const hash = location.hash.replace('#', '');
@@ -58,6 +59,33 @@ const ManagerDashboard = () => {
 
   const approvalItems = approvals;
 
+  const getApprovalGoals = (approval) => goals.filter(goal => String(goal.employeeId) === String(approval.employeeId) && approval.goals.some(snapshot => String(snapshot.goalId) === String(goal.id)));
+
+  const updateApprovalGoalEdit = (approvalId, goalId, field, value) => {
+    setApprovalEdits((previous) => ({
+      ...previous,
+      [approvalId]: {
+        ...(previous[approvalId] || {}),
+        [goalId]: {
+          ...(previous[approvalId]?.[goalId] || {}),
+          [field]: field === 'weightage' ? Number(value) : value,
+        },
+      },
+    }));
+  };
+
+  const buildGoalEdits = (approval) => {
+    const approvalGoals = getApprovalGoals(approval);
+    return approvalGoals.map((goal) => {
+      const draft = approvalEdits[approval.id]?.[goal.id] || {};
+      return {
+        goalId: goal.id,
+        target: draft.target ?? goal.target,
+        weightage: draft.weightage ?? goal.weightage,
+      };
+    });
+  };
+
   const handleTabChange = (tab) => {
     if (tab === 'team') {
       navigate('/manager');
@@ -66,14 +94,15 @@ const ManagerDashboard = () => {
     }
   };
 
-  const handleAction = async (id, actionType) => {
-    if (!String(id).startsWith('goal-')) {
+  const handleAction = async (approval, actionType) => {
+    if (!String(approval.id).startsWith('goal-')) {
       try {
-        const updatedApproval = await apiClient.updateApproval(id, {
+        const updatedApproval = await apiClient.updateApproval(approval.id, {
           action: actionType === 'Approved' ? 'approve' : actionType === 'Returned' ? 'return' : 'reject',
-          managerComment: approvals.find(approval => approval.id === id)?.comment || '',
+          managerComment: approval.comment || '',
+          goalEdits: buildGoalEdits(approval),
         });
-        setApprovals(approvals.map(approval => approval.id === id ? updatedApproval : approval));
+        setApprovals(approvals.map(item => item.id === approval.id ? updatedApproval : item));
         setGoals(await apiClient.getGoals());
         toast.success(actionType === 'Approved' ? 'Goal sheet approved and locked' : 'Goal sheet returned');
       } catch (error) {
@@ -297,15 +326,48 @@ const ManagerDashboard = () => {
             <div className="approval-body p-6 grid grid-cols-2 gap-6">
               <div>
                 <div className="form-group">
-                  <label className="form-label text-sm text-gray-500 uppercase">Goal Title</label>
-                  <div className="font-medium text-lg border border-transparent hover:border-gray-300 p-2 rounded transition-colors cursor-text" contentEditable suppressContentEditableWarning>
-                    {approval.title}
+                  <label className="form-label text-sm text-gray-500 uppercase">Inline Goal Edits</label>
+                  <div className="space-y-3 mt-2">
+                    {getApprovalGoals(approval).length > 0 ? getApprovalGoals(approval).map(goal => (
+                      <div key={goal.id} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-semibold text-gray-800">{goal.title}</div>
+                            <div className="text-xs text-secondary mt-0.5">{goal.thrustArea} · {goal.uom}</div>
+                          </div>
+                          {goal.locked ? <Lock size={14} className="text-gray-400 mt-1" /> : <span className="text-xs font-medium text-green-600 mt-1">Editable</span>}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <div>
+                            <label className="form-label text-xs text-gray-500 uppercase">Target</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={approvalEdits[approval.id]?.[goal.id]?.target ?? goal.target}
+                              onChange={(event) => updateApprovalGoalEdit(approval.id, goal.id, 'target', event.target.value)}
+                              disabled={approval.status !== 'Pending' && approval.status !== 'Under Review'}
+                            />
+                          </div>
+                          <div>
+                            <label className="form-label text-xs text-gray-500 uppercase">Weightage</label>
+                            <input
+                              type="number"
+                              min="10"
+                              max="100"
+                              className="form-control"
+                              value={approvalEdits[approval.id]?.[goal.id]?.weightage ?? goal.weightage}
+                              onChange={(event) => updateApprovalGoalEdit(approval.id, goal.id, 'weightage', event.target.value)}
+                              disabled={approval.status !== 'Pending' && approval.status !== 'Under Review'}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-secondary">
+                        Goal details are loading from the employee sheet.
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-secondary mt-1 italic">Click to edit inline before approving</p>
-                </div>
-                <div className="form-group mt-4">
-                  <label className="form-label text-sm text-gray-500 uppercase">Weightage</label>
-                  <div className="font-medium text-lg">{approval.weightage}%</div>
                 </div>
                 <div className="form-group mt-6">
                   <label className="form-label text-sm text-gray-500 uppercase">Manager Comment</label>
@@ -350,13 +412,13 @@ const ManagerDashboard = () => {
             <div className="approval-footer p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
               {approval.status === 'Pending' || approval.status === 'Under Review' ? (
                 <>
-                  <button className="btn btn-outline text-danger border-danger hover:bg-red-50" onClick={() => handleAction(approval.id, 'Rejected')}>
+                  <button className="btn btn-outline text-danger border-danger hover:bg-red-50" onClick={() => handleAction(approval, 'Rejected')}>
                     <X size={16} /> Reject
                   </button>
-                  <button className="btn btn-outline text-warning border-warning hover:bg-yellow-50" onClick={() => handleAction(approval.id, 'Returned')}>
+                  <button className="btn btn-outline text-warning border-warning hover:bg-yellow-50" onClick={() => handleAction(approval, 'Returned')}>
                     <MessageSquare size={16} /> Request Changes
                   </button>
-                  <button className="btn btn-primary" onClick={() => handleAction(approval.id, 'Approved')}>
+                  <button className="btn btn-primary" onClick={() => handleAction(approval, 'Approved')}>
                     <Check size={16} /> Approve
                   </button>
                 </>

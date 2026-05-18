@@ -6,6 +6,7 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { authorizeRoles } from '../../middleware/role.js';
 import { protect } from '../../middleware/auth.js';
 import { logAuditEvent } from '../../services/auditService.js';
+import { dispatchNotification } from '../../services/notificationService.js';
 
 const router = express.Router();
 
@@ -64,6 +65,17 @@ router.put('/:id', protect, authorizeRoles('manager', 'admin'), asyncHandler(asy
     { employeeId: approval.employeeId, status: 'submitted' },
     { status: goalStatus, locked: status === 'Approved', managerComment }
   );
+
+  // Dispatch notification to employee
+  await dispatchNotification({
+    userId: approval.employeeId.toString(),
+    type: status === 'Approved' ? 'approval' : 'reminder',
+    title: status === 'Approved' ? 'Goal Sheet Approved! 🎉' : 'Goal Sheet Returned for Revision',
+    message: status === 'Approved'
+      ? 'Your goal sheet has been approved. Goals are now locked and ready for tracking.'
+      : 'Your goal sheet needs revision. Please make the requested changes and resubmit.',
+    linkData: null,
+  });
 
   await logAuditEvent({
     action: status === 'Approved' ? 'Approved Goal Sheet' : 'Returned Goal Sheet',

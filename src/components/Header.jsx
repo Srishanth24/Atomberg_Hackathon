@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, Menu, UserCircle, CheckCircle, ShieldAlert, Target, Clock, Settings, LogOut, MessageSquare } from 'lucide-react';
+import { Bell, Search, Menu, UserCircle, CheckCircle, ShieldAlert, Target, Clock, Settings, LogOut, MessageSquare, Trash2, ExternalLink } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { apiClient } from '../services/apiClient.js';
 import './Header.css';
 
 const NOTIFICATIONS = [
@@ -23,14 +24,37 @@ const Header = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [teamsEnabled, setTeamsEnabled] = useState(true);
-  
+  const [notificationActionId, setNotificationActionId] = useState(null);
+
   const location = useLocation();
   const navigate = useNavigate();
   const searchRef = useRef(null);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
+
+  // Load notifications on mount and periodically
+  useEffect(() => {
+    const loadNotifications = () => {
+      setLoadingNotifications(true);
+      apiClient.getNotifications()
+        .then(data => {
+          setNotifications(Array.isArray(data) ? data : []);
+        })
+        .catch(err => {
+          console.error('Failed to load notifications:', err);
+          // Fallback to empty array
+          setNotifications([]);
+        })
+        .finally(() => setLoadingNotifications(false));
+    };
+
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -55,10 +79,93 @@ const Header = () => {
     return 'User';
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'approval': return CheckCircle;
+      case 'escalation': return ShieldAlert;
+      case 'reminder': return Clock;
+      case 'shared_update': return Target;
+      default: return Bell;
+    }
+  };
+
+  const getNotificationColor = (type) => {
+    switch (type) {
+      case 'approval': return { bg: 'bg-green-50', color: 'text-green-500' };
+      case 'escalation': return { bg: 'bg-red-50', color: 'text-red-500' };
+      case 'reminder': return { bg: 'bg-yellow-50', color: 'text-yellow-500' };
+      case 'shared_update': return { bg: 'bg-blue-50', color: 'text-blue-500' };
+      default: return { bg: 'bg-gray-50', color: 'text-gray-500' };
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return 'just now';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+  };
 
   const markAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    apiClient.markAllNotificationsRead()
+      .then(() => {
+        setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      })
+      .catch(err => toast.error('Failed to mark notifications as read'));
+  };
+
+  const openNotificationLink = (notification) => {
+    if (!notification.linkData) return;
+
+    const rawLink = notification.linkData;
+    let targetPath = rawLink;
+
+    if (typeof rawLink === 'string' && rawLink.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(rawLink);
+        targetPath = parsed.path || parsed.link || parsed.route || rawLink;
+      } catch {
+        targetPath = rawLink;
+      }
+    }
+
+    if (typeof targetPath === 'string' && targetPath.startsWith('/')) {
+      navigate(targetPath);
+    }
+  };
+
+  const markNotificationRead = (notificationId) => {
+    setNotificationActionId(notificationId);
+    apiClient.markNotificationRead(notificationId)
+      .then(() => {
+        setNotifications(prev => prev.map(notification => (
+          notification.id === notificationId ? { ...notification, isRead: true } : notification
+        )));
+      })
+      .catch(() => toast.error('Failed to mark notification as read'))
+      .finally(() => setNotificationActionId(null));
+  };
+
+  const deleteNotification = (notificationId) => {
+    setNotificationActionId(notificationId);
+    apiClient.deleteNotification(notificationId)
+      .then(() => {
+        setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
+      })
+      .catch(() => toast.error('Failed to delete notification'))
+      .finally(() => setNotificationActionId(null));
   };
 
   const handleSignOut = () => {
@@ -79,9 +186,9 @@ const Header = () => {
         </button>
         <div className="search-bar relative" ref={searchRef}>
           <Search size={16} className="search-icon text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input 
-            type="text" 
-            placeholder="Search goals, users, or reports..." 
+          <input
+            type="text"
+            placeholder="Search goals, users, or reports..."
             className="search-input w-96 pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
             value={searchQuery}
             onChange={(e) => {
@@ -92,7 +199,7 @@ const Header = () => {
               if (searchQuery.length > 0) setShowSearch(true);
             }}
           />
-          
+
           {showSearch && (
             <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden animate-fade-in z-50">
               <div className="p-2 border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
@@ -120,10 +227,10 @@ const Header = () => {
           )}
         </div>
       </div>
-      
+
       <div className="header-right flex items-center gap-4">
         <div className="relative" ref={notifRef}>
-          <button 
+          <button
             className="icon-btn notifications-btn relative hover:bg-gray-100 rounded-full p-2 transition-colors"
             onClick={() => setShowNotifications(!showNotifications)}
           >
@@ -145,24 +252,61 @@ const Header = () => {
                   </button>
                 )}
               </div>
-              
+
               <div className="max-h-[400px] overflow-y-auto">
                 {notifications.length > 0 ? (
                   notifications.map(notif => {
-                    const Icon = notif.icon;
+                    const Icon = getNotificationIcon(notif.type);
+                    const { bg, color } = getNotificationColor(notif.type);
                     return (
-                      <div key={notif.id} className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors flex gap-3 ${!notif.read ? 'bg-blue-50/30' : ''}`}>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notif.bg} ${notif.color}`}>
+                      <div
+                        key={notif.id}
+                        className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors flex gap-3 ${!notif.isRead ? 'bg-blue-50/30' : ''}`}
+                        onClick={() => {
+                          markNotificationRead(notif.id);
+                          openNotificationLink(notif);
+                        }}
+                      >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${bg} ${color}`}>
                           <Icon size={18} />
                         </div>
                         <div className="flex-1">
                           <div className="flex justify-between items-start mb-1">
-                            <h4 className={`text-sm ${!notif.read ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{notif.title}</h4>
-                            <span className="text-[10px] text-gray-400 whitespace-nowrap">{notif.time}</span>
+                            <h4 className={`text-sm ${!notif.isRead ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{notif.title}</h4>
+                            <span className="text-[10px] text-gray-400 whitespace-nowrap">{formatTime(notif.createdAt)}</span>
                           </div>
                           <p className="text-xs text-gray-600">{notif.message}</p>
+                          <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-400">
+                            {notif.linkData && (
+                              <span className="inline-flex items-center gap-1 text-blue-600">
+                                <ExternalLink size={11} />
+                                Open related item
+                              </span>
+                            )}
+                            <button
+                              className="inline-flex items-center gap-1 hover:text-blue-600"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                markNotificationRead(notif.id);
+                              }}
+                              disabled={notificationActionId === notif.id}
+                            >
+                              Mark read
+                            </button>
+                            <button
+                              className="inline-flex items-center gap-1 hover:text-red-600"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                deleteNotification(notif.id);
+                              }}
+                              disabled={notificationActionId === notif.id}
+                            >
+                              <Trash2 size={11} />
+                              Delete
+                            </button>
+                          </div>
                         </div>
-                        {!notif.read && <div className="w-2 h-2 bg-blue-500 rounded-full self-center"></div>}
+                        {!notif.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full self-center"></div>}
                       </div>
                     )
                   })
@@ -176,7 +320,7 @@ const Header = () => {
                   </div>
                 )}
               </div>
-              
+
               {notifications.length > 0 && (
                 <div className="p-3 border-t border-gray-100 text-center bg-gray-50">
                   <button
@@ -194,9 +338,9 @@ const Header = () => {
             </div>
           )}
         </div>
-        
+
         <div className="relative" ref={profileRef}>
-          <div 
+          <div
             className="user-profile flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors"
             onClick={() => setShowProfile(!showProfile)}
           >
@@ -208,7 +352,7 @@ const Header = () => {
               <UserCircle size={24} />
             </div>
           </div>
-          
+
           {showProfile && (
             <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-fade-in z-50">
               <div className="p-4 border-b border-gray-100 bg-gray-50">
@@ -216,30 +360,30 @@ const Header = () => {
                 <p className="text-sm text-gray-500">demo.{getRole().toLowerCase()}@company.com</p>
                 <span className="badge badge-primary text-xs mt-2 inline-flex items-center gap-1">Entra ID Connected</span>
               </div>
-              
+
               <div className="p-2 border-b border-gray-100">
                 <div className="p-2 flex items-center justify-between hover:bg-gray-50 rounded cursor-pointer transition-colors">
-                   <div className="flex items-center gap-2 text-sm text-gray-700">
-                     <MessageSquare size={16} className="text-blue-600" />
-                     MS Teams Notifications
-                   </div>
-                   <div 
-                     className={`w-8 h-4 rounded-full relative cursor-pointer transition-colors ${teamsEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
-                     onClick={(e) => { e.stopPropagation(); setTeamsEnabled(!teamsEnabled); }}
-                   >
-                     <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${teamsEnabled ? 'left-4' : 'left-0.5'}`}></div>
-                   </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-700">
+                    <MessageSquare size={16} className="text-blue-600" />
+                    MS Teams Notifications
+                  </div>
+                  <div
+                    className={`w-8 h-4 rounded-full relative cursor-pointer transition-colors ${teamsEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
+                    onClick={(e) => { e.stopPropagation(); setTeamsEnabled(!teamsEnabled); }}
+                  >
+                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${teamsEnabled ? 'left-4' : 'left-0.5'}`}></div>
+                  </div>
                 </div>
                 <div className="p-2 flex items-center gap-2 text-sm text-gray-700 hover:bg-gray-50 rounded cursor-pointer transition-colors">
-                   <Settings size={16} className="text-gray-400" />
-                   Account Settings
+                  <Settings size={16} className="text-gray-400" />
+                  Account Settings
                 </div>
               </div>
-              
+
               <div className="p-2">
                 <button onClick={handleSignOut} className="w-full p-2 flex items-center gap-2 text-sm text-red-600 hover:bg-red-50 rounded cursor-pointer transition-colors">
-                   <LogOut size={16} />
-                   Sign Out
+                  <LogOut size={16} />
+                  Sign Out
                 </button>
               </div>
             </div>

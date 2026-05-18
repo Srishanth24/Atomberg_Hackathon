@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Target, Lock, Mail, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiClient } from '../services/apiClient';
+import { entraEnabled, entraLoginRequest, msalInstance, buildEntraProfile } from '../services/entraAuth';
 import './Login.css';
 
 const Login = () => {
@@ -27,6 +28,28 @@ const Login = () => {
   const handleForgotPassword = (e) => {
     e.preventDefault();
     toast('Use the demo password: demo123!');
+  };
+
+  const handleEntraLogin = async () => {
+    try {
+      if (!entraEnabled || !msalInstance) {
+        toast.error('Configure VITE_ENTRA_CLIENT_ID and VITE_ENTRA_TENANT_ID to enable Microsoft Entra sign-in.');
+        return;
+      }
+
+      const loginResult = await msalInstance.loginPopup(entraLoginRequest);
+      const account = loginResult.account;
+      const profile = buildEntraProfile(account, account?.idTokenClaims || {});
+
+      const { token, user } = await apiClient.loginWithEntra(profile);
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      localStorage.setItem('userRole', user.role);
+      toast.success(`Signed in with Microsoft Entra ID as ${user.name}`);
+      navigate(`/${user.role}`);
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   return (
@@ -89,7 +112,7 @@ const Login = () => {
             <button
               type="button"
               className="btn btn-outline w-full flex items-center justify-center gap-2 mb-6 border-gray-300 text-gray-700 hover:bg-gray-50"
-              onClick={() => toast('Microsoft Entra ID is presentation-ready; use demo credentials for this build.')}
+              onClick={handleEntraLogin}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 21 21"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
               Sign in with Microsoft Entra ID

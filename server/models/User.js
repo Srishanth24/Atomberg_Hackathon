@@ -11,7 +11,10 @@ const userSchema = new mongoose.Schema({
   },
   department: { type: String },
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  azureAdId: { type: String } // For Microsoft Entra ID mapping
+  managerAzureAdId: { type: String },
+  azureAdId: { type: String }, // For Microsoft Entra ID mapping
+  tenantId: { type: String },
+  issuer: { type: String }
 }, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model('User', userSchema);

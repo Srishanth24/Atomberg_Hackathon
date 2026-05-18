@@ -52,10 +52,28 @@ const computeProgress = (uom, target, actual) => {
   return 0;
 };
 
+const getCheckinDraftStorageKey = () => {
+  try {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    return `goalsync-checkin-drafts-${currentUser.email || localStorage.getItem('userRole') || 'guest'}`;
+  } catch {
+    return `goalsync-checkin-drafts-${localStorage.getItem('userRole') || 'guest'}`;
+  }
+};
+
 const EmployeeDashboard = () => {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [goals, setGoals] = useState([]);
   const [loadingGoals, setLoadingGoals] = useState(true);
+  const [editingGoal, setEditingGoal] = useState(null);
+  const [checkinDrafts, setCheckinDrafts] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(getCheckinDraftStorageKey()) || '{}');
+    } catch {
+      return {};
+    }
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const hash = location.hash.replace('#', '');
@@ -68,7 +86,18 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     apiClient.getGoals()
-      .then(setGoals)
+      .then((loadedGoals) => {
+        const mergedGoals = loadedGoals.map(goal => {
+          const draft = checkinDrafts[goal.id];
+          if (!draft) return goal;
+          return {
+            ...goal,
+            actual: draft.actual ?? goal.actual,
+            status: draft.status ?? goal.status,
+          };
+        });
+        setGoals(mergedGoals);
+      })
       .catch(error => toast.error(error.message))
       .finally(() => setLoadingGoals(false));
   }, []);
@@ -153,11 +182,46 @@ const EmployeeDashboard = () => {
   };
 
   const handleSaveCheckinDraft = () => {
-    toast.success('Check-in draft saved locally on this page. Submit to persist it.');
+    const draftMap = goals
+      .filter(goal => goal.isApproved)
+      .reduce((accumulator, goal) => {
+        accumulator[goal.id] = {
+          actual: goal.actual,
+          status: goal.status,
+          savedAt: new Date().toISOString(),
+        };
+        return accumulator;
+      }, {});
+
+    setCheckinDrafts(draftMap);
+    localStorage.setItem(getCheckinDraftStorageKey(), JSON.stringify(draftMap));
+    toast.success('Check-in draft saved');
   };
 
   const handleEditDraft = (goal) => {
-    toast(`Editing existing goal "${goal.title}" is available before submission in the API backlog.`);
+    setEditingGoal({ ...goal });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEditedGoal = async () => {
+    if (!editingGoal) return;
+
+    try {
+      const updatedGoal = await apiClient.updateGoalDraft(editingGoal.id, {
+        title: editingGoal.title,
+        thrustArea: editingGoal.thrustArea,
+        weightage: editingGoal.weightage,
+        description: editingGoal.description,
+        uom: editingGoal.uom,
+        target: editingGoal.target,
+      });
+      setGoals(goals.map(goal => goal.id === updatedGoal.id ? updatedGoal : goal));
+      setShowEditModal(false);
+      setEditingGoal(null);
+      toast.success('Goal draft updated');
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const getWeightageColor = () => {
@@ -602,14 +666,92 @@ const EmployeeDashboard = () => {
               </form>
             </div>
             <div className="modal-footer bg-gray-50 border-t border-gray-100">
-              <button className="btn btn-outline hover:bg-gray-100" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button type="button" className="btn btn-outline hover:bg-gray-100" onClick={() => setShowAddModal(false)}>Cancel</button>
               <button 
+                type="button"
                 className={`btn ${canSubmitGoal ? 'btn-primary shadow-md hover:shadow-lg' : 'btn-disabled opacity-50 cursor-not-allowed'}`} 
                 onClick={handleSaveDraft}
                 disabled={!canSubmitGoal}
               >
                 Save as Draft
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editingGoal && (
+        <div className="modal-overlay animate-fade-in">
+          <div className="modal-card shadow-xl max-w-2xl w-full">
+            <div className="modal-header bg-white">
+              <h2>Edit Goal Draft</h2>
+              <button className="close-btn" type="button" onClick={() => { setShowEditModal(false); setEditingGoal(null); }}>&times;</button>
+            </div>
+
+            <div className="modal-body p-6 bg-white">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="form-group col-span-2 mb-0">
+                  <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Goal Title</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editingGoal.title}
+                    onChange={(event) => setEditingGoal({ ...editingGoal, title: event.target.value })}
+                  />
+                </div>
+                <div className="form-group mb-0">
+                  <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Thrust Area</label>
+                  <select className="form-control bg-gray-50" value={editingGoal.thrustArea} onChange={(event) => setEditingGoal({ ...editingGoal, thrustArea: event.target.value })}>
+                    <option>Revenue Growth</option>
+                    <option>Customer Success</option>
+                    <option>Product Development</option>
+                    <option>Operational Excellence</option>
+                  </select>
+                </div>
+                <div className="form-group mb-0">
+                  <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Weightage (%)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    min="10"
+                    max="100"
+                    value={editingGoal.weightage}
+                    onChange={(event) => setEditingGoal({ ...editingGoal, weightage: Number(event.target.value) })}
+                  />
+                </div>
+                <div className="form-group mb-0">
+                  <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Unit of Measurement (UoM)</label>
+                  <select className="form-control bg-gray-50" value={editingGoal.uom} onChange={(event) => setEditingGoal({ ...editingGoal, uom: event.target.value })}>
+                    <option>Min (Numeric / %)</option>
+                    <option>Max (Numeric / %)</option>
+                    <option>Timeline</option>
+                    <option>Zero-based</option>
+                  </select>
+                </div>
+                <div className="form-group mb-0">
+                  <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Target Value</label>
+                  <input
+                    type={editingGoal.uom === 'Timeline' ? 'date' : 'text'}
+                    className="form-control"
+                    value={editingGoal.target}
+                    onChange={(event) => setEditingGoal({ ...editingGoal, target: event.target.value })}
+                  />
+                </div>
+                <div className="form-group col-span-2 mb-0">
+                  <label className="form-label text-sm text-gray-600 uppercase tracking-wide font-semibold">Description</label>
+                  <textarea
+                    className="form-control"
+                    rows="3"
+                    value={editingGoal.description}
+                    onChange={(event) => setEditingGoal({ ...editingGoal, description: event.target.value })}
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer bg-gray-50 border-t border-gray-100">
+              <button type="button" className="btn btn-outline hover:bg-gray-100" onClick={() => { setShowEditModal(false); setEditingGoal(null); }}>Cancel</button>
+              <button type="button" className="btn btn-primary shadow-md hover:shadow-lg" onClick={handleSaveEditedGoal}>Save Changes</button>
             </div>
           </div>
         </div>
