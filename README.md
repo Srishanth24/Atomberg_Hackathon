@@ -25,9 +25,18 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
 <summary><strong>Employee Experience</strong></summary>
 
 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px;">
-   <img src="./Pictures/screencapture-localhost-5173-employee-2026-05-19-10_09_42.png" alt="Employee dashboard overview" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-employee-2026-05-19-10_10_19.png" alt="Employee goals workspace" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-employee-2026-05-19-10_10_30.png" alt="Employee quarterly check-ins" width="100%" />
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-employee-2026-05-19-10_09_42.png" alt="Employee dashboard overview" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Overview dashboard with goals, progress, and performance cards.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-employee-2026-05-19-10_10_19.png" alt="Employee goals workspace" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">My Goals view with approved objectives and locked action states.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-employee-2026-05-19-10_10_30.png" alt="Employee quarterly check-ins" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Quarterly check-in form with auto-computed scores and submission flow.</figcaption>
+   </figure>
 </div>
 </details>
 
@@ -35,9 +44,18 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
 <summary><strong>Manager Experience</strong></summary>
 
 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px;">
-   <img src="./Pictures/screencapture-localhost-5173-manager-2026-05-19-10_10_44.png" alt="Manager dashboard overview" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-manager-2026-05-19-10_10_56.png" alt="Manager pending approvals" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-manager-2026-05-19-10_11_08.png" alt="Manager shared goals" width="100%" />
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-manager-2026-05-19-10_10_44.png" alt="Manager dashboard overview" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Team overview with KPIs, priority actions, and member status.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-manager-2026-05-19-10_10_56.png" alt="Manager pending approvals" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Approval workflow showing inline goal edits and review timeline.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-manager-2026-05-19-10_11_08.png" alt="Manager shared goals" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Shared KPI page for syncing departmental goals across the team.</figcaption>
+   </figure>
 </div>
 </details>
 
@@ -45,12 +63,30 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
 <summary><strong>Admin & Analytics</strong></summary>
 
 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px;">
-   <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_08.png" alt="Admin governance analytics" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_21.png" alt="Admin workspace overview" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_31.png" alt="Admin audit trail" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_43.png" alt="Admin reports builder" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-analytics-2026-05-19-10_11_51.png" alt="Analytics command center" width="100%" />
-   <img src="./Pictures/screencapture-localhost-5173-analytics-2026-05-19-10_13_03.png" alt="Analytics insights dashboard" width="100%" />
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_08.png" alt="Admin governance analytics" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Governance analytics with org-wide health, hotspots, and escalation signals.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_21.png" alt="Admin workspace overview" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Admin workspace overview with cycle controls and recent audit activity.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_31.png" alt="Admin audit trail" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Audit trail table for monitoring system actions and compliance events.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_43.png" alt="Admin reports builder" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Reports builder for exporting filtered organizational reports.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-analytics-2026-05-19-10_11_51.png" alt="Analytics command center" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Analytics command center with AI signals, charts, and escalation trends.</figcaption>
+   </figure>
+   <figure style="margin:0;">
+      <img src="./Pictures/screencapture-localhost-5173-analytics-2026-05-19-10_13_03.png" alt="Analytics insights dashboard" width="100%" />
+      <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Additional governance analytics view for comparison and insight tracking.</figcaption>
+   </figure>
 </div>
 </details>
 
