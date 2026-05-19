@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Users, CheckCircle, AlertCircle, BarChart2, 
+import {
+  Users, CheckCircle, AlertCircle, BarChart2,
   MessageSquare, UserPlus, FileText, Check, X,
   RefreshCw, History, Clock, Lock, Target, Share2, CornerDownRight, Plus
 } from 'lucide-react';
@@ -36,11 +36,44 @@ const SHARED_KPIS = [
   }
 ];
 
+const SHARED_GOAL_TEMPLATES = [
+  {
+    title: 'Improve Department Goal Completion to 95%',
+    description: 'Operational KPI for improving completion quality in the current cycle.',
+    thrustArea: 'Operational Excellence',
+    target: 95,
+  },
+  {
+    title: 'Reduce Engineering Escalations by 30%',
+    description: 'Track proactive risk mitigation and reduce escalation volume quarter over quarter.',
+    thrustArea: 'Risk Management',
+    target: 30,
+  },
+  {
+    title: 'Increase Customer Success Renewal Rate to 92%',
+    description: 'Shared KPI aligned with retention and service quality outcomes.',
+    thrustArea: 'Customer Excellence',
+    target: 92,
+  },
+];
+
+const normalizeSharedKpis = (kpis) => {
+  const seen = new Set();
+  return (Array.isArray(kpis) ? kpis : []).filter((kpi) => {
+    const key = String(kpi.title || '').trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 const ManagerDashboard = () => {
   const [approvals, setApprovals] = useState([]);
   const [goals, setGoals] = useState([]);
   const [sharedKpis, setSharedKpis] = useState(SHARED_KPIS);
   const [syncingKpi, setSyncingKpi] = useState(null);
+  const [creatingSharedGoal, setCreatingSharedGoal] = useState(false);
+  const [highlightedApprovalId, setHighlightedApprovalId] = useState(null);
   const [approvalEdits, setApprovalEdits] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,7 +85,7 @@ const ManagerDashboard = () => {
       .then(([goalsData, approvalsData, sharedGoalsData]) => {
         setGoals(goalsData);
         setApprovals(approvalsData);
-        setSharedKpis(sharedGoalsData.length ? sharedGoalsData : SHARED_KPIS);
+        setSharedKpis(normalizeSharedKpis(sharedGoalsData.length ? sharedGoalsData : SHARED_KPIS));
       })
       .catch(error => toast.error(error.message));
   }, []);
@@ -96,6 +129,7 @@ const ManagerDashboard = () => {
 
   const handleAction = async (approval, actionType) => {
     if (!String(approval.id).startsWith('goal-')) {
+      const loadingToast = toast.loading(`${actionType === 'Approved' ? 'Approving' : 'Returning'} goal sheet...`);
       try {
         const updatedApproval = await apiClient.updateApproval(approval.id, {
           action: actionType === 'Approved' ? 'approve' : actionType === 'Returned' ? 'return' : 'reject',
@@ -104,20 +138,23 @@ const ManagerDashboard = () => {
         });
         setApprovals(approvals.map(item => item.id === approval.id ? updatedApproval : item));
         setGoals(await apiClient.getGoals());
-        toast.success(actionType === 'Approved' ? 'Goal sheet approved and locked' : 'Goal sheet returned');
+        if (actionType === 'Approved') {
+          setHighlightedApprovalId(approval.id);
+          setTimeout(() => setHighlightedApprovalId(null), 1200);
+        }
+        toast.success(actionType === 'Approved' ? 'Goal sheet approved and locked' : 'Goal sheet returned', { id: loadingToast });
       } catch (error) {
-        toast.error(error.message);
+        toast.error(error.message, { id: loadingToast });
       }
       return;
     }
-
   };
 
   const handleSync = (id) => {
     setSyncingKpi(id);
     apiClient.syncSharedGoal(id, 100)
       .then(() => apiClient.getSharedGoals())
-      .then(setSharedKpis)
+      .then((goals) => setSharedKpis(normalizeSharedKpis(goals)))
       .catch(error => toast.error(error.message))
       .finally(() => setSyncingKpi(null));
   };
@@ -146,19 +183,31 @@ const ManagerDashboard = () => {
   };
 
   const handleCreateSharedGoal = async () => {
+    setCreatingSharedGoal(true);
     try {
-      await apiClient.createSharedGoal({
-        title: 'Improve Department Goal Completion to 95%',
-        description: 'Shared KPI assigned to reporting employees for the current cycle.',
+      const existingTitles = new Set(sharedKpis.map((kpi) => String(kpi.title || '').trim().toLowerCase()));
+      const template = SHARED_GOAL_TEMPLATES.find((item) => !existingTitles.has(item.title.toLowerCase())) || {
+        title: `Shared KPI ${new Date().toLocaleTimeString()}`,
+        description: 'Custom shared KPI created for this reporting cycle.',
         thrustArea: 'Operational Excellence',
+        target: 90,
+      };
+
+      await apiClient.createSharedGoal({
+        title: template.title,
+        description: template.description,
+        thrustArea: template.thrustArea,
         uom: 'Min (Numeric / %)',
-        target: 95,
+        target: template.target,
         defaultWeightage: 10,
       });
-      setSharedKpis(await apiClient.getSharedGoals());
+
+      setSharedKpis(normalizeSharedKpis(await apiClient.getSharedGoals()));
       toast.success('Shared goal created for your team');
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setCreatingSharedGoal(false);
     }
   };
 
@@ -220,6 +269,72 @@ const ManagerDashboard = () => {
         </div>
       </div>
 
+      <div className="grid grid-cols-3 gap-6 mb-6">
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-4">
+            <h2 className="card-title flex items-center gap-2"><Clock size={18} className="text-yellow-600" /> Manager Pulse</h2>
+          </div>
+          <div className="space-y-4">
+            {[
+              { label: 'Pending approvals', value: approvalItems.filter(item => item.status === 'Pending' || item.status === 'Under Review').length, tone: 'bg-yellow-500' },
+              { label: 'Shared goals synced', value: sharedKpis.filter(kpi => kpi.syncStatus === 'Synced').length, tone: 'bg-green-500' },
+              { label: 'At-risk teammates', value: TEAM_MEMBERS.filter(member => member.status === 'Behind').length, tone: 'bg-red-500' },
+            ].map(item => (
+              <div key={item.label}>
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="text-gray-700 font-medium">{item.label}</span>
+                  <span className="font-bold text-gray-900">{item.value}</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                  <div className={`${item.tone} h-2.5 rounded-full`} style={{ width: `${Math.max(24, item.value * 28)}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-4">
+            <h2 className="card-title flex items-center gap-2"><Target size={18} className="text-blue-600" /> Team Spotlight</h2>
+          </div>
+          <div className="space-y-3">
+            {TEAM_MEMBERS.slice(0, 3).map(member => (
+              <div key={member.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/70 px-3 py-3">
+                <div>
+                  <p className="font-semibold text-gray-800">{member.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{member.role}</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-gray-900">{member.progress}%</div>
+                  <span className={`badge ${member.status === 'Completed' ? 'badge-success' : member.status === 'Behind' ? 'badge-danger' : 'badge-primary'}`}>{member.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-4 flex justify-between items-center">
+            <h2 className="card-title flex items-center gap-2"><MessageSquare size={18} className="text-indigo-600" /> Action Queue</h2>
+            <span className="badge badge-secondary">Today</span>
+          </div>
+          <div className="space-y-3">
+            <button className="w-full rounded-xl border border-gray-200 px-4 py-3 text-left hover:bg-gray-50 transition-colors" onClick={() => handleTabChange('approvals')}>
+              <p className="font-semibold text-gray-800">Review pending approvals</p>
+              <p className="text-xs text-gray-500 mt-0.5">Clear the queue before cycle lock-in.</p>
+            </button>
+            <button className="w-full rounded-xl border border-gray-200 px-4 py-3 text-left hover:bg-gray-50 transition-colors" onClick={() => handleTabChange('shared')}>
+              <p className="font-semibold text-gray-800">Sync shared KPIs</p>
+              <p className="text-xs text-gray-500 mt-0.5">Push the latest target values to the team.</p>
+            </button>
+            <button className="w-full rounded-xl border border-gray-200 px-4 py-3 text-left hover:bg-gray-50 transition-colors" onClick={handleExportReport}>
+              <p className="font-semibold text-gray-800">Export team report</p>
+              <p className="text-xs text-gray-500 mt-0.5">Generate a fresh spreadsheet for review.</p>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 gap-6">
         <div className="card col-span-2">
           <div className="card-header border-b border-gray-100 pb-4">
@@ -248,9 +363,9 @@ const ManagerDashboard = () => {
                       <div className="progress-cell flex items-center gap-2">
                         <span className="text-sm font-bold w-8">{member.progress}%</span>
                         <div className="progress-bar-bg flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="progress-bar-fill h-full transition-all" 
-                            style={{ 
+                          <div
+                            className="progress-bar-fill h-full transition-all"
+                            style={{
                               width: `${member.progress}%`,
                               backgroundColor: member.progress >= 80 ? 'var(--success)' : member.progress <= 40 ? 'var(--danger)' : 'var(--primary)'
                             }}
@@ -270,7 +385,7 @@ const ManagerDashboard = () => {
 
         <div className="card">
           <div className="card-header border-b border-gray-100 pb-4">
-            <h2 className="card-title flex items-center gap-2"><AlertCircle size={18} className="text-red-500"/> Needs Attention</h2>
+            <h2 className="card-title flex items-center gap-2"><AlertCircle size={18} className="text-red-500" /> Needs Attention</h2>
           </div>
           <div className="list-group p-4 space-y-4">
             {approvalItems.filter(a => a.status === 'Pending').map(approval => (
@@ -305,24 +420,24 @@ const ManagerDashboard = () => {
       </div>
 
       <div className="approval-list space-y-6">
-            {approvalItems.map(approval => (
-          <div key={approval.id} className="card approval-card border border-gray-200 shadow-sm overflow-hidden">
+        {approvalItems.map(approval => (
+          <div key={approval.id} className={`card approval-card border border-gray-200 shadow-sm overflow-hidden ${highlightedApprovalId === approval.id ? 'approval-flash' : ''}`}>
             <div className="approval-header bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><Users size={20} /></div>
                 <div>
                   <h3 className="font-bold text-lg">{approval.user}</h3>
-                  <p className="text-sm text-secondary flex items-center gap-1"><Clock size={12}/> Submitted {approval.submittedAt}</p>
+                  <p className="text-sm text-secondary flex items-center gap-1"><Clock size={12} /> Submitted {approval.submittedAt}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                 <span className={`badge ${approval.status === 'Approved' ? 'badge-success' : approval.status === 'Rejected' ? 'badge-danger' : approval.status === 'Returned' ? 'badge-warning' : 'badge-primary'}`}>
-                   {approval.status}
-                 </span>
-                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{approval.type}</span>
+                <span className={`badge ${approval.status === 'Approved' ? 'badge-success' : approval.status === 'Rejected' ? 'badge-danger' : approval.status === 'Returned' ? 'badge-warning' : 'badge-primary'}`}>
+                  {approval.status}
+                </span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{approval.type}</span>
               </div>
             </div>
-            
+
             <div className="approval-body p-6 grid grid-cols-2 gap-6">
               <div>
                 <div className="form-group">
@@ -371,9 +486,9 @@ const ManagerDashboard = () => {
                 </div>
                 <div className="form-group mt-6">
                   <label className="form-label text-sm text-gray-500 uppercase">Manager Comment</label>
-                  <textarea 
-                    className="form-control" 
-                    rows="3" 
+                  <textarea
+                    className="form-control"
+                    rows="3"
                     placeholder="Add feedback before approving/rejecting..."
                     value={approval.comment}
                     onChange={(e) => {
@@ -389,9 +504,9 @@ const ManagerDashboard = () => {
                   ></textarea>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <h4 className="font-semibold flex items-center gap-2 mb-4"><History size={16}/> Approval Timeline</h4>
+                <h4 className="font-semibold flex items-center gap-2 mb-4"><History size={16} /> Approval Timeline</h4>
                 <div className="space-y-4">
                   {approval.history.map((hist, i) => (
                     <div key={i} className="flex gap-3">
@@ -408,7 +523,7 @@ const ManagerDashboard = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="approval-footer p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
               {approval.status === 'Pending' || approval.status === 'Under Review' ? (
                 <>
@@ -434,13 +549,13 @@ const ManagerDashboard = () => {
 
   const renderShared = () => (
     <div className="animate-fade-in">
-       <div className="dashboard-header mb-6">
+      <div className="dashboard-header mb-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Share2 size={24}/> Shared KPIs</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><Share2 size={24} /> Shared KPIs</h1>
           <p className="text-secondary mt-1">Create, assign, and sync departmental KPIs to your team.</p>
         </div>
-        <button className="btn btn-primary shadow-lg hover:shadow-xl transition-shadow" onClick={handleCreateSharedGoal}>
-          <Plus size={16} /> Create Shared Goal
+        <button className="btn btn-primary shadow-lg hover:shadow-xl transition-shadow" onClick={handleCreateSharedGoal} disabled={creatingSharedGoal}>
+          <Plus size={16} /> {creatingSharedGoal ? 'Creating...' : 'Create Shared Goal'}
         </button>
       </div>
 
@@ -449,29 +564,29 @@ const ManagerDashboard = () => {
           <div key={kpi.id} className="card shadow-sm border border-gray-200 overflow-hidden">
             <div className="card-header bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
               <div>
-                <span className="badge badge-dark mb-2 inline-flex items-center gap-1"><Share2 size={12}/> Shared KPI</span>
+                <span className="badge badge-dark mb-2 inline-flex items-center gap-1"><Share2 size={12} /> Shared KPI</span>
                 <h2 className="card-title text-lg font-bold">{kpi.title}</h2>
                 <p className="text-sm text-gray-500">Primary Owner: <span className="font-medium text-gray-700">{kpi.owner}</span></p>
               </div>
               <div className="flex flex-col items-end gap-2">
-                 <div className="flex items-center gap-2">
-                   <span className="text-sm font-medium text-gray-600">Sync Status:</span>
-                   <span className={`badge ${kpi.syncStatus === 'Synced' ? 'badge-success' : 'badge-warning'}`}>
-                     {kpi.syncStatus}
-                   </span>
-                 </div>
-                 <p className="text-xs text-gray-400">Last Sync: {kpi.lastSync}</p>
-                 <button 
-                   className={`btn btn-sm ${kpi.syncStatus === 'Pending Sync' ? 'btn-primary' : 'btn-outline'} flex items-center gap-1 mt-2`}
-                   onClick={() => handleSync(kpi.id)}
-                   disabled={syncingKpi === kpi.id}
-                 >
-                   <RefreshCw size={14} className={syncingKpi === kpi.id ? 'animate-spin' : ''} /> 
-                   {syncingKpi === kpi.id ? 'Syncing...' : 'Sync Now'}
-                 </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600">Sync Status:</span>
+                  <span className={`badge ${kpi.syncStatus === 'Synced' ? 'badge-success' : 'badge-warning'}`}>
+                    {kpi.syncStatus}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">Last Sync: {kpi.lastSync}</p>
+                <button
+                  className={`btn btn-sm ${kpi.syncStatus === 'Pending Sync' ? 'btn-primary' : 'btn-outline'} flex items-center gap-1 mt-2`}
+                  onClick={() => handleSync(kpi.id)}
+                  disabled={syncingKpi === kpi.id}
+                >
+                  <RefreshCw size={14} className={syncingKpi === kpi.id ? 'animate-spin' : ''} />
+                  {syncingKpi === kpi.id ? 'Syncing...' : 'Sync Now'}
+                </button>
               </div>
             </div>
-            
+
             <div className="p-4">
               <div className="mb-4">
                 <div className="flex justify-between text-sm font-semibold mb-1">
@@ -479,18 +594,18 @@ const ManagerDashboard = () => {
                   <span>{kpi.progress}%</span>
                 </div>
                 <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600" style={{width: `${kpi.progress}%`}}></div>
+                  <div className="h-full bg-blue-600" style={{ width: `${kpi.progress}%` }}></div>
                 </div>
               </div>
 
               <div className="bg-white border border-gray-100 rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <Target size={16}/> Linked Employee Goals ({kpi.linkedEmployees.length})
+                  <Target size={16} /> Linked Employee Goals ({kpi.linkedEmployees.length})
                 </h4>
                 <div className="space-y-3">
                   {kpi.children.map((child, idx) => (
                     <div key={idx} className="flex items-center gap-4 bg-gray-50 p-2 rounded">
-                      <CornerDownRight size={16} className="text-gray-400"/>
+                      <CornerDownRight size={16} className="text-gray-400" />
                       <div className="w-1/4 font-medium text-sm">{child.name}</div>
                       <div className="flex-1">
                         <div className="flex justify-between text-xs mb-1">
@@ -498,11 +613,11 @@ const ManagerDashboard = () => {
                           <span>Weightage: {child.weightage}%</span>
                         </div>
                         <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500" style={{width: `${child.progress}%`}}></div>
+                          <div className="h-full bg-green-500" style={{ width: `${child.progress}%` }}></div>
                         </div>
                       </div>
                       <div className="w-10">
-                        <Lock size={14} className="text-gray-400" title="Employees cannot edit this title"/>
+                        <Lock size={14} className="text-gray-400" title="Employees cannot edit this title" />
                       </div>
                     </div>
                   ))}
@@ -518,13 +633,13 @@ const ManagerDashboard = () => {
   return (
     <div className="manager-dashboard">
       <div className="tabs-nav mb-6 border-b border-gray-200">
-        <button 
+        <button
           className={`tab-btn relative px-4 py-2 font-medium transition-colors ${activeTab === 'team' ? 'active text-primary border-b-2 border-primary' : 'text-gray-500 hover:text-gray-700'}`}
           onClick={() => handleTabChange('team')}
         >
           Team Overview
         </button>
-        <button 
+        <button
           className={`tab-btn relative px-4 py-2 font-medium transition-colors flex items-center gap-2 ${activeTab === 'approvals' ? 'active text-primary border-b-2 border-primary' : 'text-gray-500 hover:text-gray-700'}`}
           onClick={() => handleTabChange('approvals')}
         >
@@ -535,7 +650,7 @@ const ManagerDashboard = () => {
             </span>
           )}
         </button>
-        <button 
+        <button
           className={`tab-btn relative px-4 py-2 font-medium transition-colors ${activeTab === 'shared' ? 'active text-primary border-b-2 border-primary' : 'text-gray-500 hover:text-gray-700'}`}
           onClick={() => handleTabChange('shared')}
         >

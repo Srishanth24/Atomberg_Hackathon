@@ -23,7 +23,13 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    /\.vercel\.app$/
+  ],
+  credentials: true
+}));
 app.use(express.json());
 app.use(auditLog);
 

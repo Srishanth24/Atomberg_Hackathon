@@ -1,0 +1,4 @@
+
+.custom-scrollbar-slim::-webkit-scrollbar { w-1; h-1; } .custom-scrollbar-slim::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar-slim::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 20px; } .custom-scrollbar-slim::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

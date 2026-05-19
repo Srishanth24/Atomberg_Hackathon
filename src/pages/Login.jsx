@@ -59,7 +59,7 @@ const Login = () => {
           <Target className="login-logo-icon" size={32} />
           <span className="login-logo-text">GoalSync AI</span>
         </div>
-        
+
         <div className="login-form-container">
           <div className="login-header">
             <h1>Welcome back</h1>
@@ -71,9 +71,9 @@ const Login = () => {
               <label className="form-label">Work Email</label>
               <div className="input-with-icon">
                 <Mail size={18} className="input-icon" />
-                <input 
-                  type="email" 
-                  className="form-control" 
+                <input
+                  type="email"
+                  className="form-control"
                   placeholder="name@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -86,9 +86,9 @@ const Login = () => {
               <label className="form-label">Password</label>
               <div className="input-with-icon">
                 <Lock size={18} className="input-icon" />
-                <input 
-                  type="password" 
-                  className="form-control" 
+                <input
+                  type="password"
+                  className="form-control"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -114,7 +114,7 @@ const Login = () => {
               className="btn btn-outline w-full flex items-center justify-center gap-2 mb-6 border-gray-300 text-gray-700 hover:bg-gray-50"
               onClick={handleEntraLogin}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 21 21"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 21 21"><path fill="#f25022" d="M1 1h9v9H1z" /><path fill="#00a4ef" d="M1 11h9v9H1z" /><path fill="#7fba00" d="M11 1h9v9h-9z" /><path fill="#ffb900" d="M11 11h9v9h-9z" /></svg>
               Sign in with Microsoft Entra ID
             </button>
           </form>
@@ -122,25 +122,25 @@ const Login = () => {
           <div className="demo-credentials mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg shadow-inner">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Hackathon Demo Credentials</h4>
             <div className="space-y-2 text-sm text-slate-700">
-              <div 
-                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm" 
+              <div
+                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm"
                 onClick={() => { setEmail('peter.parker@goalsync.app'); setPassword('demo123!'); }}
               >
-                <span><span className="font-semibold text-blue-600 w-20 inline-block">Employee</span> peter.parker@goalsync.app</span>
+                <span><span className="font-semibold text-blue-600 w-24 inline-block italic">Demo Employee</span> peter.parker@goalsync.app</span>
                 <span className="font-mono text-xs text-slate-400">demo123!</span>
               </div>
-              <div 
-                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm" 
+              <div
+                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm"
                 onClick={() => { setEmail('tony.stark@goalsync.app'); setPassword('demo123!'); }}
               >
-                <span><span className="font-semibold text-purple-600 w-20 inline-block">Manager</span> tony.stark@goalsync.app</span>
+                <span><span className="font-semibold text-purple-600 w-24 inline-block italic">Demo Manager</span> tony.stark@goalsync.app</span>
                 <span className="font-mono text-xs text-slate-400">demo123!</span>
               </div>
-              <div 
-                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm" 
+              <div
+                className="flex justify-between items-center cursor-pointer hover:bg-white p-2 rounded border border-transparent hover:border-slate-200 transition-all shadow-sm"
                 onClick={() => { setEmail('admin.hr@goalsync.app'); setPassword('demo123!'); }}
               >
-                <span><span className="font-semibold text-teal-600 w-20 inline-block">Admin/HR</span> admin.hr@goalsync.app</span>
+                <span><span className="font-semibold text-teal-600 w-24 inline-block italic">Demo Admin</span> admin.hr@goalsync.app</span>
                 <span className="font-mono text-xs text-slate-400">demo123!</span>
               </div>
             </div>
@@ -158,12 +158,12 @@ const Login = () => {
           <div className="illustration-element el-2">
             <CheckCircle2 size={80} strokeWidth={1.5} />
           </div>
-          
+
           <div className="illustration-text">
             <h2>Align. Track. Succeed.</h2>
             <p>Empower your workforce with AI-driven goal management and intelligent performance insights.</p>
           </div>
-          
+
           <div className="glass-card mockup-card">
             <div className="mockup-header">
               <div className="mockup-dot red"></div>

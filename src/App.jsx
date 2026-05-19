@@ -1,11 +1,12 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
-import Analytics from './pages/Analytics';
-import Architecture from './pages/Architecture';
 import MainLayout from './layouts/MainLayout';
+
+const Analytics = lazy(() => import('./pages/Analytics'));
 
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -24,13 +25,12 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
-          
+
           <Route element={<MainLayout />}>
             {/* Protected Routes Example */}
             <Route element={<ProtectedRoute currentRole={currentRole} allowedRoles={['employee', 'manager', 'admin']} />}>
               <Route path="/employee" element={<EmployeeDashboard />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/architecture" element={<Architecture />} />
+              <Route path="/analytics" element={<Suspense fallback={<div className="p-6 text-sm text-gray-500">Loading analytics module...</div>}><Analytics /></Suspense>} />
             </Route>
 
             <Route element={<ProtectedRoute currentRole={currentRole} allowedRoles={['manager', 'admin']} />}>

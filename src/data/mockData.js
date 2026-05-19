@@ -32,10 +32,9 @@ export const SHARED_KPIS = [
 ];
 
 export const GOALS = [
-  { id: 'G-1001', employeeId: 'E1', title: 'Migrate Legacy Database to Postgres', thrustArea: 'Infrastructure', target: '2026-11-30', actual: null, uom: 'Timeline', progress: 0, status: 'approved', weightage: 30, linkedSharedGoalId: 'KPI-100' },
+  { id: 'G-1001', employeeId: 'E1', title: 'Migrate Legacy Database to Postgres', thrustArea: 'Infrastructure', target: '2026-11-30', actual: null, uom: 'Timeline', progress: 0, status: 'approved', weightage: 50, linkedSharedGoalId: 'KPI-100' },
+  { id: 'G-1003', employeeId: 'E1', title: 'Maintain 0 Severity-1 Outages', thrustArea: 'Operational Excellence', target: 0, actual: 0, uom: 'Zero-based', progress: 100, status: 'approved', weightage: 50, linkedSharedGoalId: null },
   { id: 'G-1002', employeeId: 'E2', title: 'Close 5 Enterprise Deals in Q3', thrustArea: 'Revenue Growth', target: 5, actual: 2, uom: 'Min (Numeric / %)', progress: 40, status: 'locked', weightage: 40, linkedSharedGoalId: 'KPI-101' },
-  { id: 'G-1003', employeeId: 'E1', title: 'Maintain 0 Severity-1 Outages', thrustArea: 'Operational Excellence', target: 0, actual: 0, uom: 'Zero-based', progress: 100, status: 'approved', weightage: 20, linkedSharedGoalId: null },
-  { id: 'G-1004', employeeId: 'E1', title: 'Complete AWS Solutions Architect Cert', thrustArea: 'Team Building', target: '2026-08-15', actual: '2026-08-10', uom: 'Timeline', progress: 100, status: 'draft', weightage: 50, linkedSharedGoalId: null },
   { id: 'G-1005', employeeId: 'E3', title: 'Deploy Predictive ML Model Pipeline', thrustArea: 'Product Development', target: 100, actual: 80, uom: 'Min (Numeric / %)', progress: 80, status: 'returned', weightage: 100, linkedSharedGoalId: null }
 ];
 
@@ -72,10 +71,9 @@ export const ORG_ANALYTICS = {
 };
 
 export const REALISTIC_GOALS = [
-  { id: 101, title: 'Migrate legacy DB to Cloud', thrustArea: 'Infrastructure', target: '2026-11-30', actual: null, uom: 'Timeline', progress: 0, status: 'On Track', lifecycle: 'Approved', weightage: 30, isApproved: true, employeeId: 'E1' },
-  { id: 102, title: 'Close 5 Enterprise Deals in Q3', thrustArea: 'Revenue Growth', target: 5, actual: 2, uom: 'Min (Numeric / %)', progress: 40, status: 'Behind', lifecycle: 'Approved', weightage: 40, isApproved: true, employeeId: 'E2' },
-  { id: 103, title: 'Maintain 0 Severity-1 Outages', thrustArea: 'Operational Excellence', target: 0, actual: 0, uom: 'Zero-based', progress: 100, status: 'Completed', lifecycle: 'Approved', weightage: 20, isApproved: true, employeeId: 'E1' },
-  { id: 104, title: 'Hire 3 Senior Developers', thrustArea: 'Team Building', target: 3, actual: 1, uom: 'Min (Numeric / %)', progress: 33, status: 'Draft', lifecycle: 'Draft', weightage: 10, isApproved: false, employeeId: 'E1' },
+  { id: 101, title: 'Migrate legacy DB to Cloud', thrustArea: 'Infrastructure', target: '2026-11-30', actual: null, uom: 'Timeline', progress: 0, status: 'On Track', lifecycle: 'Approved', weightage: 50, isApproved: true, employeeId: 'E1' },
+  { id: 103, title: 'Maintain 0 Severity-1 Outages', thrustArea: 'Operational Excellence', target: 0, actual: 0, uom: 'Zero-based', progress: 100, status: 'Completed', lifecycle: 'Approved', weightage: 50, isApproved: true, employeeId: 'E1' },
+  { id: 102, title: 'Close 5 Enterprise Deals in Q3', thrustArea: 'Revenue Growth', target: 5, actual: 2, uom: 'Min (Numeric / %)', progress: 40, status: 'Behind', lifecycle: 'Approved', weightage: 40, isApproved: true, employeeId: 'E2' }
 ];
 
 export const ESCALATION_DATA = [

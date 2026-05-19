@@ -1,14 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Target, 
-  CheckSquare, 
-  User, 
-  Users, 
-  CheckCircle, 
-  BarChart2, 
-  ShieldAlert, 
-  FileText
+import {
+  LayoutDashboard,
+  Target,
+  CheckSquare,
+  User,
+  Users,
+  CheckCircle,
+  BarChart2,
+  ShieldAlert,
+  FileText,
+  Server
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -16,6 +17,8 @@ const Sidebar = () => {
   const location = useLocation();
   const path = location.pathname;
   const fullPath = location.pathname + location.hash;
+  const currentRole = localStorage.getItem('userRole') || 'employee';
+  const dashboardPath = currentRole === 'admin' ? '/admin' : currentRole === 'manager' ? '/manager' : '/employee';
 
   let links;
 
@@ -42,10 +45,10 @@ const Sidebar = () => {
       { name: 'Analytics', path: '/analytics', icon: BarChart2 },
     ];
   } else if (path.includes('/analytics')) {
-     links = [
-      { name: 'Back to Dashboard', path: '/employee', icon: LayoutDashboard },
-      { name: 'Analytics', path: '/analytics', icon: BarChart2 },
-     ];
+    links = [
+      { name: 'Back to Dashboard', path: dashboardPath, icon: LayoutDashboard },
+      { name: 'Insights Hub', path: '/analytics', icon: BarChart2 },
+    ];
   } else {
     // default
     links = [
@@ -61,14 +64,14 @@ const Sidebar = () => {
           <span className="logo-text">GoalSync AI</span>
         </div>
       </div>
-      
+
       <nav className="sidebar-nav">
         <div className="nav-group">
           <div className="nav-group-label">Menu</div>
           {links.map((link, index) => (
-            <Link 
-              key={index} 
-              to={link.path} 
+            <Link
+              key={index}
+              to={link.path}
               className={`nav-link ${fullPath === link.path ? 'active' : ''}`}
             >
               <link.icon size={18} />

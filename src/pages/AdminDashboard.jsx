@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiClient } from '../services/apiClient';
+import { DEPARTMENTS, ORG_ANALYTICS } from '../data/mockData';
 import './AdminDashboard.css';
 
 const AUDIT_LOGS = [
@@ -257,6 +258,76 @@ const AdminDashboard = () => {
           <div className="stat-content">
             <p className="stat-label">Active Escalations</p>
             <h3 className="stat-value">{escalations.length}</h3>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-6 mb-6">
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-4">
+            <h2 className="card-title flex items-center gap-2"><Activity size={18} className="text-blue-600" /> Governance Pulse</h2>
+          </div>
+          <div className="space-y-4">
+            {[
+              { label: 'Org adoption rate', value: `${ORG_ANALYTICS.adoptionRate}%`, width: ORG_ANALYTICS.adoptionRate, tone: 'bg-blue-500' },
+              { label: 'Average progress', value: `${Math.round(ORG_ANALYTICS.averageProgress)}%`, width: ORG_ANALYTICS.averageProgress, tone: 'bg-green-500' },
+              { label: 'Escalations this cycle', value: ORG_ANALYTICS.escalationCount, width: Math.min(100, ORG_ANALYTICS.escalationCount * 4), tone: 'bg-red-500' },
+            ].map(item => (
+              <div key={item.label}>
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="text-gray-700 font-medium">{item.label}</span>
+                  <span className="font-bold text-gray-900">{item.value}</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                  <div className={`${item.tone} h-2.5 rounded-full`} style={{ width: `${Math.max(22, item.width)}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-4">
+            <h2 className="card-title flex items-center gap-2"><Users size={18} className="text-teal-600" /> Org Coverage</h2>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Departments tracked</p>
+              <p className="mt-1 text-2xl font-bold text-gray-900">{DEPARTMENTS.length}</p>
+            </div>
+            {DEPARTMENTS.slice(0, 3).map(department => (
+              <div key={department.id} className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-3">
+                <div>
+                  <p className="font-semibold text-gray-800">{department.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Head count: {department.employeeCount}</p>
+                </div>
+                <span className="badge badge-secondary">{department.id}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card shadow-sm hover:shadow-md transition-shadow">
+          <div className="card-header border-b border-gray-100 pb-3 mb-4 flex justify-between items-center">
+            <h2 className="card-title flex items-center gap-2"><ShieldAlert size={18} className="text-red-600" /> Escalation Hotspots</h2>
+            <span className="badge badge-secondary">Live</span>
+          </div>
+          <div className="space-y-3">
+            {escalations.slice(0, 3).map(item => (
+              <div key={item.id} className="rounded-xl border border-gray-100 bg-gray-50/70 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-gray-800">{item.employee}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{item.triggerType}</p>
+                  </div>
+                  <span className={`badge ${item.severity === 'danger' ? 'badge-danger' : item.severity === 'warning' ? 'badge-warning' : 'badge-primary'}`}>{item.status}</span>
+                </div>
+                <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                  <span>{item.daysOverdue} days overdue</span>
+                  <span>Level {item.level}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

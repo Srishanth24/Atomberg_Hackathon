@@ -1,6 +1,8 @@
 # GoalSync AI 🎯
 > **Enterprise-Grade Goal Setting & Performance Tracking Portal**
 
+[Submission Portfolio (Hackathon Ready)](SUBMISSION_PORTFOLIO.md)
+
 <div align="center">
   <img src="./docs/architecture.png" alt="GoalSync AI Architecture" width="800" />
 </div>
