@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "https://your-backend-app-name.onrender.com/api/$1"
+            "destination": "https://atomberg-hackathon-870h.onrender.com/api/$1"
         },
         {
             "source": "/(.*)",
