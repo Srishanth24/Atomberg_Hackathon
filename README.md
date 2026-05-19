@@ -24,7 +24,7 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
 <details open>
 <summary><strong>Employee Experience</strong></summary>
 
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px;">
+<div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin-top:16px;">
    <figure style="margin:0;">
       <img src="./Pictures/screencapture-localhost-5173-employee-2026-05-19-10_09_42.png" alt="Employee dashboard overview" width="100%" />
       <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Overview dashboard with goals, progress, and performance cards.</figcaption>
@@ -43,7 +43,7 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
 <details>
 <summary><strong>Manager Experience</strong></summary>
 
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px;">
+<div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin-top:16px;">
    <figure style="margin:0;">
       <img src="./Pictures/screencapture-localhost-5173-manager-2026-05-19-10_10_44.png" alt="Manager dashboard overview" width="100%" />
       <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Team overview with KPIs, priority actions, and member status.</figcaption>
@@ -62,7 +62,7 @@ Organizations relying on manual goal-tracking methods (spreadsheets, emails, fra
 <details>
 <summary><strong>Admin & Analytics</strong></summary>
 
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px;">
+<div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin-top:16px;">
    <figure style="margin:0;">
       <img src="./Pictures/screencapture-localhost-5173-admin-2026-05-19-10_12_08.png" alt="Admin governance analytics" width="100%" />
       <figcaption style="font-size:0.9rem; color:#6b7280; margin-top:8px;">Governance analytics with org-wide health, hotspots, and escalation signals.</figcaption>
