@@ -192,8 +192,7 @@ All users have access to the `/analytics` module.
 ---
 
 ## 🔗 Deployment Links
-- **Live Demo**: *(Update with your deployed frontend URL)*
-- **API Base URL**: *(Update with your deployed backend URL, e.g. Render/Railway/Fly.io)*
-- **Presentation Deck**: [Figma Slides](https://figma.com) *(Update link)*
+- **Live Demo**: *https://atomberg-hackathon-seven.vercel.app/*
+- **API Base URL**: *(https://atomberg-hackathon-870h.onrender.com)*
 
-> Built with ❤️ for the Hackathon by the Antigravity Team.
+
